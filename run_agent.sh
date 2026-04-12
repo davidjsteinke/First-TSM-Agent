@@ -25,8 +25,11 @@ ts() { while IFS= read -r line; do printf '[%s] %s\n' "$(date -u '+%Y-%m-%d %H:%
     echo "--- [2/3] agent.py"
     "$PYTHON" "$SCRIPT_DIR/agent.py" 2>&1
 
-    echo "--- [3/3] arbitrage.py"
+    echo "--- [3/4] arbitrage.py"
     "$PYTHON" "$SCRIPT_DIR/arbitrage.py" 2>&1
+
+    echo "--- [4/4] generate_dashboard.py"
+    "$PYTHON" "$SCRIPT_DIR/generate_dashboard.py" 2>&1
 
     echo "--- done"
 } 2>&1 | ts | tee -a "$LOG_FILE"
