@@ -167,6 +167,46 @@ def build_repricing(records: list[dict]) -> list[dict]:
     return out
 
 
+PROFESSION_TOOL_KEYWORDS = {
+    "knife", "needle", "hammer", "chisel", "awl", "apron", "gloves", "hat",
+    "goggles", "wrench", "focuser", "backpack", "chapeau", "bifocals",
+    "rolling pin", "satchel", "cover", "visor", "multitool", "snippers",
+    "clampers", "cutters", "toolset", "screwdriver", "wrench", "tongs",
+    "cap", "loupes", "quill", "rod", "shears", "pick", "pickaxe", "sickle",
+}
+
+
+def _is_profession_item(item_name: str) -> bool:
+    """Return True if the item name contains any profession tool keyword."""
+    lower = item_name.lower()
+    return any(kw in lower for kw in PROFESSION_TOOL_KEYWORDS)
+
+
+def build_stop_buying(profit_stats: list[dict], names: dict) -> list[dict]:
+    """
+    Items with negative margin — losing gold on every transaction.
+    Profession tools and accessories are filtered out; these are typically
+    one-off crafting purchases, not repeatable commodity trades.
+    """
+    stop = []
+    for s in profit_stats:
+        if s["profit_per_item"] >= 0:
+            continue
+        name = names.get(str(s["item_id"]), f"Item {s['item_id']}")
+        if _is_profession_item(name):
+            continue
+        loss_per_item   = abs(s["profit_per_item"])
+        total_gold_lost = loss_per_item * s["buy_txns"]
+        stop.append({
+            **s,
+            "loss_per_item":   loss_per_item,
+            "loss_pct":        abs(s["margin_pct"]),
+            "total_gold_lost": total_gold_lost,
+        })
+    stop.sort(key=lambda x: x["total_gold_lost"], reverse=True)
+    return stop
+
+
 # ---------------------------------------------------------------------------
 # Build dashboard data payload
 # ---------------------------------------------------------------------------
@@ -176,27 +216,24 @@ def build_data() -> dict:
     records = raw["records"]
     names   = load_item_names()
 
-    profit_stats = build_profit_stats(records)
-    arbitrage    = build_arbitrage(records)
-    repricing    = build_repricing(records)
+    profit_stats      = build_profit_stats(records)
+    arbitrage         = build_arbitrage(records)
+    repricing         = build_repricing(records)
+    stop_buying_stats = build_stop_buying(profit_stats, names)
 
-    def enrich_profit(s):
-        return {**s, "item_name": item_name(s["item_id"], names)}
+    enrich = lambda s: {**s, "item_name": item_name(s["item_id"], names)}
 
-    def enrich_arb(o):
-        return {**o, "item_name": item_name(o["item_id"], names)}
+    profit_rows      = [enrich(s) for s in profit_stats]
+    arb_rows         = [enrich(o) for o in arbitrage]
+    reprice_rows     = [enrich(r) for r in repricing]
+    stop_buying_rows = [enrich(s) for s in stop_buying_stats]
 
-    def enrich_reprice(r):
-        return {**r, "item_name": item_name(r["item_id"], names)}
-
-    profit_rows  = [enrich_profit(s) for s in profit_stats]
-    arb_rows     = [enrich_arb(o)    for o in arbitrage]
-    reprice_rows = [enrich_reprice(r) for r in repricing]
-
-    profitable = [s for s in profit_rows if s["profit_per_item"] > 0]
-    best_flip  = profit_rows[0] if profit_rows else None
-    best_arb   = arb_rows[0]    if arb_rows   else None
-    total_pot  = sum(max(0, s["profit_per_item"]) for s in profit_rows)
+    profitable  = [s for s in profit_rows if s["profit_per_item"] > 0]
+    best_flip   = profit_rows[0]      if profit_rows      else None
+    best_arb    = arb_rows[0]         if arb_rows         else None
+    worst_sb    = stop_buying_rows[0] if stop_buying_rows else None
+    total_pot   = sum(max(0, s["profit_per_item"]) for s in profit_rows)
+    total_lost  = sum(s["total_gold_lost"] for s in stop_buying_rows)
 
     return {
         "meta": {
@@ -206,18 +243,23 @@ def build_data() -> dict:
             "source_file": str(DATA_FILE),
         },
         "summary": {
-            "total_profitable":  len(profitable),
-            "best_flip_name":    best_flip["item_name"] if best_flip else "—",
-            "best_flip_profit":  best_flip["profit_per_item"] if best_flip else 0,
-            "best_arb_name":     best_arb["item_name"] if best_arb else "—",
-            "best_arb_profit":   best_arb["profit_per_item"] if best_arb else 0,
-            "total_potential":   total_pot,
-            "arb_count":         len(arb_rows),
-            "reprice_count":     len(reprice_rows),
+            "total_profitable":    len(profitable),
+            "best_flip_name":      best_flip["item_name"] if best_flip else "—",
+            "best_flip_profit":    best_flip["profit_per_item"] if best_flip else 0,
+            "best_arb_name":       best_arb["item_name"] if best_arb else "—",
+            "best_arb_profit":     best_arb["profit_per_item"] if best_arb else 0,
+            "total_potential":     total_pot,
+            "arb_count":           len(arb_rows),
+            "reprice_count":       len(reprice_rows),
+            "stop_buying_count":   len(stop_buying_rows),
+            "total_gold_lost":     total_lost,
+            "worst_sb_name":       worst_sb["item_name"] if worst_sb else "—",
+            "worst_sb_loss":       worst_sb["total_gold_lost"] if worst_sb else 0,
         },
-        "profit":   profit_rows,
-        "arbitrage": arb_rows,
-        "repricing": reprice_rows,
+        "profit":      profit_rows,
+        "arbitrage":   arb_rows,
+        "repricing":   reprice_rows,
+        "stop_buying": stop_buying_rows,
     }
 
 
@@ -333,6 +375,14 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
   color: var(--blue);
 }
 
+/* ---- Danger cards (stop-buying) ---- */
+.card-danger { border-color: rgba(248,81,73,.4); background: rgba(248,81,73,.06); }
+.card-danger .value { color: var(--red); }
+.card-danger .label { color: rgba(248,81,73,.8); }
+
+/* ---- Loss value cells ---- */
+.loss { color: var(--red); font-weight: 600; }
+
 /* ---- Footer ---- */
 .footer { text-align: center; padding: 18px; color: var(--muted); font-size: .75rem; border-top: 1px solid var(--border); }
 </style>
@@ -355,11 +405,13 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
   <div class="tab active" data-panel="profit">Profit Opportunities</div>
   <div class="tab" data-panel="arbitrage">Cross-Realm Arbitrage</div>
   <div class="tab" data-panel="repricing">Repricing Concerns</div>
+  <div class="tab" data-panel="stop-buying" style="color:var(--red)">⛔ Stop Buying</div>
 </div>
 
 <div id="profit" class="panel active"></div>
 <div id="arbitrage" class="panel"></div>
 <div id="repricing" class="panel"></div>
+<div id="stop-buying" class="panel"></div>
 
 <div class="footer">Generated from <span id="source-file"></span></div>
 
@@ -368,7 +420,7 @@ const DATA = __DATA_JSON__;
 
 // ---- Utilities ----
 const g = id => document.getElementById(id);
-const fmt_g  = v => v == null ? '—' : v.toFixed(2) + 'g';
+const fmt_g  = v => v == null ? '—' : (Math.abs(v) < 10 ? v.toFixed(2) : Math.round(v).toLocaleString()) + 'g';
 const fmt_pct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
 
 function rowClass(val, type) {
@@ -481,20 +533,24 @@ function initMeta() {
 function initCards() {
   const s = DATA.summary;
   const cards = [
-    { label: 'Profitable Items',    value: s.total_profitable,                    sub: `on ${DATA.meta.realm}` },
-    { label: 'Best Single Flip',    value: fmt_g(s.best_flip_profit),             sub: s.best_flip_name },
-    { label: 'Best Arbitrage',      value: fmt_g(s.best_arb_profit),              sub: s.best_arb_name },
-    { label: 'Total Potential',     value: fmt_g(s.total_potential),              sub: 'if all flips executed' },
-    { label: 'Arbitrage Opps',      value: s.arb_count,                           sub: `spread > 20% after AH cut` },
-    { label: 'Repricing Concerns',  value: s.reprice_count,                       sub: 'cancelled or expired' },
+    { label: 'Profitable Items',    value: s.total_profitable,     sub: `on ${DATA.meta.realm}`,      danger: false },
+    { label: 'Best Single Flip',    value: fmt_g(s.best_flip_profit), sub: s.best_flip_name,          danger: false },
+    { label: 'Best Arbitrage',      value: fmt_g(s.best_arb_profit),  sub: s.best_arb_name,           danger: false },
+    { label: 'Total Potential',     value: fmt_g(s.total_potential),  sub: 'if all flips executed',   danger: false },
+    { label: 'Arbitrage Opps',      value: s.arb_count,               sub: 'spread > 20% after AH cut', danger: false },
+    { label: 'Repricing Concerns',  value: s.reprice_count,           sub: 'cancelled or expired',    danger: false },
+    { label: '⛔ Stop Buying Items', value: s.stop_buying_count,       sub: 'losing gold per flip',    danger: true  },
   ];
-  g('cards').innerHTML = cards.map(c =>
-    `<div class="card">
+  g('cards').innerHTML = cards.map(c => {
+    const cls = c.danger ? 'card card-danger' : 'card';
+    const val = typeof c.value === 'number' && !String(c.value).includes('g')
+      ? c.value.toLocaleString() : c.value;
+    return `<div class="${cls}">
       <div class="label">${c.label}</div>
-      <div class="value">${typeof c.value === 'number' && !String(c.value).includes('g') ? c.value.toLocaleString() : c.value}</div>
+      <div class="value">${val}</div>
       <div class="sub">${c.sub}</div>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 }
 
 // ---- Tabs ----
@@ -554,6 +610,73 @@ function initRepricing() {
   makeTable('repricing', cols, DATA.repricing, 'failure_rate', 'fail');
 }
 
+// ---- Stop Buying table ----
+function initStopBuying() {
+  const cols = [
+    { key: 'item_name',       label: 'Item',          num: false },
+    { key: 'avg_buy',         label: 'Avg Buy',       num: true,  format: 'gold' },
+    { key: 'avg_sell',        label: 'Avg Sell',      num: true,  format: 'gold' },
+    { key: 'loss_per_item',   label: 'Loss / Item',   num: true,  format: 'loss_g' },
+    { key: 'loss_pct',        label: 'Loss %',        num: true,  format: 'loss_pct' },
+    { key: 'buy_txns',        label: 'Buy Txns',      num: true,  format: 'int' },
+    { key: 'total_gold_lost', label: 'Total Lost',    num: true,  format: 'loss_g' },
+  ];
+  // Extend makeTable's format handling inline via a wrapper
+  const container = g('stop-buying');
+  let sortCol = 6, sortAsc = false; // default: worst total lost first
+
+  function render() {
+    const rows = DATA.stop_buying;
+    const sorted = [...rows].sort((a, b) => {
+      const col = cols[sortCol];
+      const va = a[col.key], vb = b[col.key];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1; if (vb == null) return -1;
+      const cmp = col.num ? (va - vb) : String(va).localeCompare(String(vb));
+      return sortAsc ? cmp : -cmp;
+    });
+
+    const thead = cols.map((c, i) => {
+      const cls = i === sortCol ? ' class="sorted"' : '';
+      const icon = i === sortCol
+        ? (sortAsc ? ' <span class="sort-icon">↑</span>' : ' <span class="sort-icon">↓</span>')
+        : ' <span class="sort-icon" style="opacity:.25">↕</span>';
+      return `<th${cls} data-col="${i}">${c.label}${icon}</th>`;
+    }).join('');
+
+    const tbody = sorted.map(row => {
+      const cells = cols.map(c => {
+        const raw = row[c.key];
+        if (c.format === 'loss_g')  return `<td class="loss">${raw != null ? fmt_g(raw) : '—'}</td>`;
+        if (c.format === 'loss_pct') return `<td class="loss">-${raw != null ? raw.toFixed(1)+'%' : '—'}</td>`;
+        if (c.format === 'gold')    return `<td>${raw != null ? fmt_g(raw) : '—'}</td>`;
+        if (c.format === 'int')     return `<td>${raw ?? '—'}</td>`;
+        return `<td>${raw ?? '—'}</td>`;
+      }).join('');
+      return `<tr class="row-red">${cells}</tr>`;
+    }).join('');
+
+    const empty = rows.length === 0
+      ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--green)">✓ No loss-making items — great job!</td></tr>'
+      : tbody;
+
+    container.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr>${thead}</tr></thead>
+      <tbody>${empty}</tbody>
+    </table></div>`;
+
+    container.querySelectorAll('thead th').forEach(th => {
+      th.addEventListener('click', () => {
+        const ci = +th.dataset.col;
+        if (ci === sortCol) sortAsc = !sortAsc;
+        else { sortCol = ci; sortAsc = false; }
+        render();
+      });
+    });
+  }
+  render();
+}
+
 // ---- Boot ----
 initMeta();
 initCards();
@@ -561,6 +684,7 @@ initTabs();
 initProfit();
 initArbitrage();
 initRepricing();
+initStopBuying();
 </script>
 </body>
 </html>
@@ -575,9 +699,10 @@ def main():
     print(f"Loading {DATA_FILE}...")
     data = build_data()
 
-    print(f"  Profit rows:    {len(data['profit'])}")
-    print(f"  Arbitrage rows: {len(data['arbitrage'])}")
-    print(f"  Repricing rows: {len(data['repricing'])}")
+    print(f"  Profit rows:      {len(data['profit'])}")
+    print(f"  Stop Buying rows: {len(data['stop_buying'])}")
+    print(f"  Arbitrage rows:   {len(data['arbitrage'])}")
+    print(f"  Repricing rows:   {len(data['repricing'])}")
 
     # Embed data — JSON is valid JS; escape </script> to prevent tag injection
     json_str = json.dumps(data, ensure_ascii=False, separators=(',', ':'))

@@ -135,6 +135,28 @@ def build_item_stats(buys: list[dict], sales: list[dict]) -> dict:
     return stats
 
 
+def build_stop_buying_stats(stats: list[dict]) -> list[dict]:
+    """
+    Derive the Stop Buying list from already-computed item stats.
+    Items where avg_sell < avg_buy have a negative margin — every
+    transaction loses gold. Ranked by total gold lost (worst first).
+    """
+    stop = []
+    for s in stats:
+        if s["profit_per_item"] >= 0:
+            continue
+        loss_per_item  = abs(s["profit_per_item"])
+        total_gold_lost = loss_per_item * s["buy_txns"]
+        stop.append({
+            **s,
+            "loss_per_item":   loss_per_item,
+            "loss_pct":        abs(s["margin_pct"]),
+            "total_gold_lost": total_gold_lost,
+        })
+    stop.sort(key=lambda x: x["total_gold_lost"], reverse=True)
+    return stop
+
+
 def build_cancel_expired_stats(cancelled: list[dict], expired: list[dict],
                                 sales: list[dict], buys: list[dict]) -> list[dict]:
     """
@@ -268,6 +290,43 @@ def render_profit_table(
     return lines
 
 
+def render_stop_buying(stop_buying: list[dict], realm_label: str) -> list[str]:
+    lines = []
+    lines.append(header(f"STOP BUYING — {realm_label}"))
+    lines.append(f"  Items where avg sell price < avg buy price — losing gold on every transaction")
+    lines.append(f"  Ranked by total gold lost (loss/item × buy transactions)")
+    lines.append(divider())
+    lines.append(
+        f"  {'Item':<36}  {'Avg Buy':>10}  {'Avg Sell':>10}  "
+        f"{'Loss/Item':>10}  {'Loss %':>8}  {'Buy Txns':>8}  {'Total Lost':>11}"
+    )
+    lines.append(divider("─"))
+
+    if not stop_buying:
+        lines.append("  (no loss-making items found — great job!)")
+    else:
+        for s in stop_buying:
+            lines.append(
+                f"  {item_label(s['item_id'])}  "
+                f"{fmt_gold(s['avg_buy'])}  "
+                f"{fmt_gold(s['avg_sell'])}  "
+                f"{fmt_gold(s['loss_per_item'])}  "
+                f"{fmt_pct(-s['loss_pct'])}  "
+                f"{s['buy_txns']:>8}  "
+                f"{fmt_gold(s['total_gold_lost'])}"
+            )
+
+    lines.append(divider("─"))
+    total_lost = sum(s["total_gold_lost"] for s in stop_buying)
+    worst = stop_buying[0] if stop_buying else None
+    lines.append(
+        f"  {len(stop_buying)} items losing gold  |  "
+        f"Total lost: {total_lost:.2f}g  |  "
+        + (f"Worst: {blizzard_api.get_item_name(worst['item_id'])} ({worst['total_gold_lost']:.2f}g lost)" if worst else "")
+    )
+    return lines
+
+
 def render_cancel_expired(ce_stats: list[dict], realm_label: str) -> list[str]:
     lines = []
     lines.append(header(f"CANCELLED & EXPIRED LISTINGS — {realm_label}"))
@@ -393,6 +452,10 @@ def main():
     snap_n = price_history.snapshot_count(PRIMARY_REALM)
 
     section(*render_profit_table(malf_stats, PRIMARY_REALM, trends=malf_trends))
+
+    # --- Stop Buying ---
+    stop_buying = build_stop_buying_stats(malf_stats)
+    section(*render_stop_buying(stop_buying, PRIMARY_REALM))
 
     # --- All-realm combined profit analysis ---
     all_buys  = [r for recs in [v for k, v in buckets.items() if k[1] == "Buys"]  for r in recs]
