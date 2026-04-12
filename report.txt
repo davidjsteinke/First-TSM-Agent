@@ -1,0 +1,353 @@
+════════════════════════════════════════════════════════════════════════════════════════════════════
+                                     TSM AUCTION PROFIT REPORT                                      
+                                      Primary Realm: Malfurion                                      
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════ DATA SUMMARY ═══════════════════════════════════════════
+  Realm                   Type           Records   Auction Only
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Malfurion ◀ primary             Buys               237            220
+  Malfurion ◀ primary             Sales              870            651
+  Malfurion ◀ primary             Cancelled          225              0
+  Malfurion ◀ primary             Expired            159              0
+  Maelstrom                       Buys               201            185
+  Maelstrom                       Sales               61              0
+  Moon Guard                      Buys               218            206
+  Moon Guard                      Sales               90             18
+  Thrall                          Buys                17             15
+  Thrall                          Sales              119             27
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Total records: 2197
+
+═════════════════════════════════ PROFIT OPPORTUNITIES — Malfurion ═════════════════════════════════
+  Auction-only | items appearing in BOTH buys & sales | ranked by gold profit/item
+  ★ = margin > 20%  (strong opportunity)  |  ↑ RISING  ↓ FALLING  → STABLE  ✦ NEW  |  ⚠ = margin dropped >10pp
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Item                                     Avg Buy    Avg Sell   Profit/Item     Margin  Buy Txns  Sell Txns  Flag              Trend     ΔSell       ΔMargin
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Kaleidoscopic Prism (240974)             3198.80g     6448.60g     3249.80g    +101.6%         1          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Skinner's Backpack (244616)               649.50g     1299.79g      650.29g    +100.1%         1          2  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Farstrider Fabric Cutters (244707)        800.99g     1324.79g      523.80g     +65.4%         1          2  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Silvermoon Focusing Shard (240956)       1100.78g     1472.87g      372.09g     +33.8%         1          2  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Chef's Bright Linen Cooking Chapeau       145.00g      454.66g      309.66g    +213.6%         1          2  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Tenebrous Amethyst (242606)               157.00g      418.67g      261.67g    +166.7%         1          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Codified Azeroot (245764)                  21.00g      257.91g      236.91g   +1128.1%         1          2  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Amani Lapis (242554)                      163.75g      384.59g      220.84g    +134.9%         1          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Harandar Peridot (242607)                 165.97g      386.39g      220.42g    +132.8%         1          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Glimmering Gemdust (242620)                46.73g      176.98g      130.25g    +278.7%         6          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Silvermoon Weapon Wrap (244637)            18.50g       92.14g       73.64g    +398.0%         1          2  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Farstrider Clampers (244713)             1299.66g     1353.74g       54.08g      +4.2%         1          2                    → STABLE      +0.00g     +0.0pp
+  Flawless Tenebrous Amethyst (242611)      363.43g      408.49g       45.07g     +12.4%         3          1                    → STABLE      +0.00g     +0.0pp
+  Sunfire Silk Bolt (239201)                 29.00g       70.09g       41.09g    +141.7%         1          9  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Munsell Ink (245801)                        7.00g       45.94g       38.94g    +556.5%         1          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Dazzling Thorium (237366)                  43.99g       72.67g       28.68g     +65.2%         1          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Song Gear (243575)                        196.22g      215.04g       18.82g      +9.6%         1          2                    → STABLE      +0.00g     +0.0pp
+  Sunfire Silk (237015)                       3.10g       20.40g       17.30g    +558.5%         2          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Void-Tempered Leather (238512)              1.35g        8.94g        7.58g    +560.4%         1         16  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Imbued Bright Linen Bolt (239702)           0.27g        5.82g        5.54g   +2023.0%         7          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Haranir Phial of Ingenuity (241313)         2.80g        7.12g        4.32g    +154.1%         2          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Refulgent Copper Ore (237359)               0.74g        2.04g        1.30g    +175.3%         2          3  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Umbral Tin Ore (237362)                     0.62g        1.83g        1.21g    +195.9%         4          3  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Void-Tempered Leather (238511)              0.17g        0.84g        0.68g    +411.8%        11          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Mote of Wild Magic (236951)                 0.08g        0.38g        0.30g    +379.5%        10          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Mote of Light (236949)                      0.17g        0.30g        0.13g     +78.1%         9          2  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Bright Linen (236965)                       0.28g        0.35g        0.07g     +25.5%         1          1  ★  HIGH MARGIN    → STABLE      +0.00g     +0.0pp
+  Mote of Primal Energy (236950)              1.08g        1.13g        0.05g      +4.4%         4          2                    → STABLE      +0.00g     +0.0pp
+  Void-Tempered Scales (238513)               0.23g        0.17g       -0.06g     -26.5%        12          2                    → STABLE      +0.00g     +0.0pp
+  Radiant Shard (243602)                      0.68g        0.26g       -0.42g     -61.6%         7          1                    → STABLE      +0.00g     +0.0pp
+  Tranquility Bloom (236761)                  0.90g        0.23g       -0.67g     -74.6%         1          6                    → STABLE      +0.00g     +0.0pp
+  Carving Canine (238523)                     7.72g        1.83g       -5.88g     -76.3%         3          1                    → STABLE      +0.00g     +0.0pp
+  Tormented Tantalum (251283)                24.16g        2.38g      -21.78g     -90.2%         3          1                    → STABLE      +0.00g     +0.0pp
+  Scalewoven Hide (244631)                  109.98g       85.97g      -24.01g     -21.8%         1          1                    → STABLE      +0.00g     +0.0pp
+  Void-Tempered Plating (238520)             42.65g        5.55g      -37.10g     -87.0%         2          1                    → STABLE      +0.00g     +0.0pp
+  Sin'dorei Armor Banding (244635)          167.33g       93.28g      -74.06g     -44.3%         5          2                    → STABLE      +0.00g     +0.0pp
+  Peerless Plumage (238522)                 134.08g       50.59g      -83.50g     -62.3%         4          7                    → STABLE      +0.00g     +0.0pp
+  Flawless Sanguine Garnet (242613)         295.15g      200.78g      -94.37g     -32.0%         3          2                    → STABLE      +0.00g     +0.0pp
+  Void-Tempered Hide (238518)               147.33g       11.46g     -135.87g     -92.2%         2          2                    → STABLE      +0.00g     +0.0pp
+  Fantastic Fur (238525)                    257.75g      113.18g     -144.57g     -56.1%         4          9                    → STABLE      +0.00g     +0.0pp
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Showing 40 of 53 items  |  28 profitable  |  24 with >20% margin
+
+════════════════════════════ PROFIT OPPORTUNITIES — ALL REALMS COMBINED ════════════════════════════
+  Auction-only | items appearing in BOTH buys & sales | ranked by gold profit/item
+  ★ = margin > 20%  (strong opportunity)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Item                                     Avg Buy    Avg Sell   Profit/Item     Margin  Buy Txns  Sell Txns  Flag            
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Kaleidoscopic Prism (240974)             2066.27g     6448.60g     4382.33g    +212.1%         2          1  ★  HIGH MARGIN  
+  Nocturnal Lotus (236780)                  312.50g     1515.25g     1202.75g    +384.9%         1          3  ★  HIGH MARGIN  
+  Eversong Botanist's Satchel (244615)      894.00g     1597.67g      703.67g     +78.7%         1          3  ★  HIGH MARGIN  
+  Silvermoon Focusing Shard (240956)       1100.78g     1472.87g      372.09g     +33.8%         1          2  ★  HIGH MARGIN  
+  Farstrider Clampers (244713)             1025.29g     1353.74g      328.46g     +32.0%         2          2  ★  HIGH MARGIN  
+  Tenebrous Amethyst (242606)               125.75g      418.67g      292.92g    +232.9%         2          1  ★  HIGH MARGIN  
+  Harandar Peridot (242607)                 106.14g      386.39g      280.25g    +264.0%         4          1  ★  HIGH MARGIN  
+  Amani Lapis (242554)                      142.82g      384.59g      241.77g    +169.3%         5          1  ★  HIGH MARGIN  
+  Codified Azeroot (245764)                  29.33g      257.91g      228.58g    +779.2%         4          2  ★  HIGH MARGIN  
+  Glimmering Gemdust (242620)                45.65g      176.98g      131.33g    +287.7%        15          1  ★  HIGH MARGIN  
+  Silvermoon Weapon Wrap (244637)            18.50g       92.14g       73.64g    +398.0%         1          2  ★  HIGH MARGIN  
+  Munsell Ink (245801)                        3.52g       45.94g       42.42g   +1204.5%        11          1  ★  HIGH MARGIN  
+  Farstrider Fabric Cutters (244707)       1282.99g     1324.79g       41.80g      +3.3%         2          2                  
+  Sunfire Silk Bolt (239201)                 29.00g       70.09g       41.09g    +141.7%         1          9  ★  HIGH MARGIN  
+  Flawless Tenebrous Amethyst (242611)      379.40g      408.49g       29.09g      +7.7%        11          1                  
+  Eversong Trout (238383)                     7.38g       35.57g       28.19g    +382.3%         1          2  ★  HIGH MARGIN  
+  Composite Flora (241281)                   16.19g       35.62g       19.43g    +120.0%         1          1  ★  HIGH MARGIN  
+  Song Gear (243575)                        196.22g      215.04g       18.82g      +9.6%         1          2                  
+  Sunfire Silk (237015)                       3.15g       20.40g       17.25g    +547.3%         7          1  ★  HIGH MARGIN  
+  Sanguithorn Pigment (245865)                0.06g       10.45g       10.39g  +17110.7%         3          1  ★  HIGH MARGIN  
+  Void-Tempered Leather (238512)              1.35g        8.92g        7.57g    +559.0%         1         17  ★  HIGH MARGIN  
+  Azeroot (236774)                            1.33g        8.33g        7.00g    +526.7%        17          4  ★  HIGH MARGIN  
+  Arcane Wyrmfish (238371)                   31.47g       37.05g        5.58g     +17.7%         1          1                  
+  Imbued Bright Linen Bolt (239702)           0.29g        5.82g        5.53g   +1899.5%        16          1  ★  HIGH MARGIN  
+  Haranir Phial of Ingenuity (241313)         3.18g        7.12g        3.95g    +124.3%         4          1  ★  HIGH MARGIN  
+  Argentleaf (236776)                         0.64g        4.39g        3.74g    +583.2%         4          7  ★  HIGH MARGIN  
+  Scalewoven Hide (244632)                   69.98g       73.08g        3.10g      +4.4%         1          4                  
+  Refulgent Copper Ore (237359)               0.90g        3.18g        2.28g    +253.6%         8          6  ★  HIGH MARGIN  
+  Umbral Tin Ore (237362)                     0.74g        2.26g        1.51g    +204.4%        10          4  ★  HIGH MARGIN  
+  Sanguithorn (236770)                        0.07g        1.54g        1.48g   +2163.7%         4          5  ★  HIGH MARGIN  
+  Lynxfish (238366)                           1.47g        2.86g        1.39g     +94.4%         1          2  ★  HIGH MARGIN  
+  Mana Lily (236778)                          1.00g        2.35g        1.34g    +134.0%        10          4  ★  HIGH MARGIN  
+  Carving Canine (238523)                     4.84g        6.01g        1.17g     +24.1%         5          3  ★  HIGH MARGIN  
+  Mote of Primal Energy (236950)              0.57g        1.62g        1.06g    +186.1%        24          3  ★  HIGH MARGIN  
+  Argentleaf Pigment (245803)                 1.20g        2.14g        0.94g     +78.6%         2          2  ★  HIGH MARGIN  
+  Mote of Pure Void (236952)                  0.20g        1.08g        0.87g    +425.1%        23          2  ★  HIGH MARGIN  
+  Void-Tempered Leather (238511)              0.08g        0.56g        0.47g    +561.6%        20          2  ★  HIGH MARGIN  
+  Sin'dorei Swarmer (238365)                  0.06g        0.53g        0.46g    +753.0%         1          2  ★  HIGH MARGIN  
+  Mote of Wild Magic (236951)                 0.13g        0.47g        0.34g    +266.0%        26          3  ★  HIGH MARGIN  
+  Tranquility Bloom (236761)                  0.12g        0.41g        0.29g    +244.0%        15          8  ★  HIGH MARGIN  
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Showing 40 of 87 items  |  43 profitable  |  38 with >20% margin
+
+═════════════════════════════════ PROFIT OPPORTUNITIES — Maelstrom ═════════════════════════════════
+  Auction-only | items appearing in BOTH buys & sales | ranked by gold profit/item
+  ★ = margin > 20%  (strong opportunity)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Item                                     Avg Buy    Avg Sell   Profit/Item     Margin  Buy Txns  Sell Txns  Flag            
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  (no items found in both buys and sales for this realm set)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Showing 0 of 0 items  |  0 profitable  |  0 with >20% margin
+
+════════════════════════════════ PROFIT OPPORTUNITIES — Moon Guard ═════════════════════════════════
+  Auction-only | items appearing in BOTH buys & sales | ranked by gold profit/item
+  ★ = margin > 20%  (strong opportunity)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Item                                     Avg Buy    Avg Sell   Profit/Item     Margin  Buy Txns  Sell Txns  Flag            
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Sanguithorn (236770)                        0.11g        6.57g        6.47g   +6055.0%         3          1  ★  HIGH MARGIN  
+  Azeroot (236774)                            1.29g        7.18g        5.89g    +457.7%        12          1  ★  HIGH MARGIN  
+  Argentleaf (236776)                         0.98g        5.40g        4.41g    +448.8%         3          1  ★  HIGH MARGIN  
+  Tranquility Bloom (236761)                  0.12g        4.28g        4.16g   +3417.7%        11          1  ★  HIGH MARGIN  
+  Mana Lily (236778)                          1.31g        1.75g        0.44g     +33.5%         9          1  ★  HIGH MARGIN  
+  Mote of Wild Magic (236951)                 0.36g        0.37g        0.01g      +3.1%         8          1                  
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Showing 6 of 6 items  |  6 profitable  |  5 with >20% margin
+
+══════════════════════════════════ PROFIT OPPORTUNITIES — Thrall ═══════════════════════════════════
+  Auction-only | items appearing in BOTH buys & sales | ranked by gold profit/item
+  ★ = margin > 20%  (strong opportunity)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Item                                     Avg Buy    Avg Sell   Profit/Item     Margin  Buy Txns  Sell Txns  Flag            
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Refulgent Copper Ore (237359)               4.16g        6.19g        2.04g     +49.0%         1          3  ★  HIGH MARGIN  
+  Brilliant Silver Ore (237364)               1.85g        3.70g        1.85g    +100.2%         1          1  ★  HIGH MARGIN  
+  Void-Tempered Leather (238511)              0.39g        0.43g        0.04g     +11.2%         1          1                  
+  Dazzling Thorium (237366)                 153.73g      141.46g      -12.28g      -8.0%         2          1                  
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Showing 4 of 4 items  |  3 profitable  |  2 with >20% margin
+
+═════════════════════════════ CANCELLED & EXPIRED LISTINGS — Malfurion ═════════════════════════════
+  Items that failed to sell — candidates for repricing strategy review
+  Avg Buy Price shown where purchase history exists
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Item                                  Cancels  Expired  Failed Qty  Sold OK  Fail Rate     Avg Buy  Advice
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Malfunctioning Stealthman 54 (192495       10       14          29        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Eversong Botanist's Satchel (244615)        8        7          15        3      83.3%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Gold-Plated Shield (233528)                 5        8          13        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Skinner's Backpack (244616)                 9        4          13        2      86.7%      649.50g  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Devouring Banding (244674)                 11        2         106        6      68.4%           —  △  High fail rate — review price vs market
+  Cured Leather Boots (238)                   4        7          11        1      91.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Sin'dorei Clampers (244714)                 6        3          10        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Hideworker's Cover (244619)                 5        4          11        3      75.0%      507.50g  △  High fail rate — review price vs market
+  Scout's Polished Skullcap (244596)          5        3           8        2      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Junker's Multitool (244717)                 3        5           9        2      80.0%     1396.97g  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Bright Linen Fishing Hat (239644)           6        2           8        3      72.7%           —  △  High fail rate — review price vs market
+  Haranir Phial of Finesse (241310)           8        0          52        5      61.5%           —  △  High fail rate — review price vs market
+  Sin'dorei Alchemist's Hat (244626)          5        3          15       19      29.6%           —  
+  Sin'dorei Quill (245776)                    5        2           7        1      87.5%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Junker's Junk Visor (244709)                3        3           7        1      85.7%     1067.43g  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Hobbyist Alchemist's Mixing Rod (245        3        3           6        2      75.0%           —  △  High fail rate — review price vs market
+  Fantastic Font Focuser (240954)             3        3           6        2      75.0%           —  △  High fail rate — review price vs market
+  Perfected Cogwheel (244702)                 4        2          19        3      66.7%           —  △  High fail rate — review price vs market
+  Scout's Scaled Boots (244588)               2        3           5        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Thalassian Needle Set (237946)              1        4           5        0     100.0%     1200.00g  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Consistent Cogwheel (244704)                4        1          17        1      83.3%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Soul Sprocket (243577)                      5        0          21        6      45.5%           —  ℹ  Cancelled only — manual undercut response
+  Journeyman's Backpack (3914)                2        2           4        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Runecloth Bag (14046)                       2        2           8        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Faunatender's Baton (245773)                2        2           4        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Scout's Polished Wrap (244600)              2        2           4        1      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Bright Linen Reagent Satchel (240159        4        0           4        1      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Apprentice Smith's Apron (244627)           2        2           4        2      66.7%           —  △  High fail rate — review price vs market
+  Bright Linen Herbalism Hat (239645)         3        1           4        2      66.7%           —  △  High fail rate — review price vs market
+  Gleaming Copper Band (240947)               2        2           4        2      66.7%           —  △  High fail rate — review price vs market
+  Song Gear (243575)                          2        2          10        2      66.7%      196.22g  △  High fail rate — review price vs market
+  Scalewoven Hide (244632)                    4        0           8        4      50.0%           —  △  High fail rate — review price vs market
+  Floratender's Crutch (245772)               1        2           3        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Haranir Phial of Ingenuity (241312)         2        1           7        1      75.0%      878.24g  △  High fail rate — review price vs market
+  Ren'dorei Void Projector (262618)           2        1           3        1      75.0%           —  △  High fail rate — review price vs market
+  B0P, Curator of Booms (257741)              2        1           3        1      75.0%           —  △  High fail rate — review price vs market
+  Bright Linen Enchanting Hat (239643)        1        2           3        2      60.0%           —  △  High fail rate — review price vs market
+  Chef's Bright Linen Cooking Chapeau         1        2           3        2      60.0%      145.00g  △  High fail rate — review price vs market
+  Draught of Rampant Abandon (241292)         3        0           9        2      60.0%           —  △  High fail rate — review price vs market
+  Thalassian Scout Armor Kit (244645)         3        0           8        3      50.0%           —  △  High fail rate — review price vs market
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  139 unique items  |  225 total cancels  |  159 total expirations  |  45 items consistently failing (≥80%)
+
+═══════════════════════════════ HIGH-MARGIN ITEMS (>20%) — MALFURION ═══════════════════════════════
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ★  Kaleidoscopic Prism (240974)            |  Buy 3198.80g  →  Sell 6448.60g  |  Profit 3249.80g/item  |  Margin +101.6%  |  1 buys / 1 sells  → STABLE
+  ★  Skinner's Backpack (244616)             |  Buy 649.50g  →  Sell 1299.79g  |  Profit 650.29g/item  |  Margin +100.1%  |  1 buys / 2 sells  → STABLE
+  ★  Farstrider Fabric Cutters (244707)      |  Buy 800.99g  →  Sell 1324.79g  |  Profit 523.80g/item  |  Margin +65.4%  |  1 buys / 2 sells  → STABLE
+  ★  Silvermoon Focusing Shard (240956)      |  Buy 1100.78g  →  Sell 1472.87g  |  Profit 372.09g/item  |  Margin +33.8%  |  1 buys / 2 sells  → STABLE
+  ★  Chef's Bright Linen Cooking Chapeau (2  |  Buy 145.00g  →  Sell 454.66g  |  Profit 309.66g/item  |  Margin +213.6%  |  1 buys / 2 sells  → STABLE
+  ★  Tenebrous Amethyst (242606)             |  Buy 157.00g  →  Sell 418.67g  |  Profit 261.67g/item  |  Margin +166.7%  |  1 buys / 1 sells  → STABLE
+  ★  Codified Azeroot (245764)               |  Buy 21.00g  →  Sell 257.91g  |  Profit 236.91g/item  |  Margin +1128.1%  |  1 buys / 2 sells  → STABLE
+  ★  Amani Lapis (242554)                    |  Buy 163.75g  →  Sell 384.59g  |  Profit 220.84g/item  |  Margin +134.9%  |  1 buys / 1 sells  → STABLE
+  ★  Harandar Peridot (242607)               |  Buy 165.97g  →  Sell 386.39g  |  Profit 220.42g/item  |  Margin +132.8%  |  1 buys / 1 sells  → STABLE
+  ★  Glimmering Gemdust (242620)             |  Buy 46.73g  →  Sell 176.98g  |  Profit 130.25g/item  |  Margin +278.7%  |  6 buys / 1 sells  → STABLE
+  ★  Silvermoon Weapon Wrap (244637)         |  Buy 18.50g  →  Sell 92.14g  |  Profit 73.64g/item  |  Margin +398.0%  |  1 buys / 2 sells  → STABLE
+  ★  Sunfire Silk Bolt (239201)              |  Buy 29.00g  →  Sell 70.09g  |  Profit 41.09g/item  |  Margin +141.7%  |  1 buys / 9 sells  → STABLE
+  ★  Munsell Ink (245801)                    |  Buy 7.00g  →  Sell 45.94g  |  Profit 38.94g/item  |  Margin +556.5%  |  1 buys / 1 sells  → STABLE
+  ★  Dazzling Thorium (237366)               |  Buy 43.99g  →  Sell 72.67g  |  Profit 28.68g/item  |  Margin +65.2%  |  1 buys / 1 sells  → STABLE
+  ★  Sunfire Silk (237015)                   |  Buy 3.10g  →  Sell 20.40g  |  Profit 17.30g/item  |  Margin +558.5%  |  2 buys / 1 sells  → STABLE
+  ★  Void-Tempered Leather (238512)          |  Buy 1.35g  →  Sell 8.94g  |  Profit 7.58g/item  |  Margin +560.4%  |  1 buys / 16 sells  → STABLE
+  ★  Imbued Bright Linen Bolt (239702)       |  Buy 0.27g  →  Sell 5.82g  |  Profit 5.54g/item  |  Margin +2023.0%  |  7 buys / 1 sells  → STABLE
+  ★  Haranir Phial of Ingenuity (241313)     |  Buy 2.80g  →  Sell 7.12g  |  Profit 4.32g/item  |  Margin +154.1%  |  2 buys / 1 sells  → STABLE
+  ★  Refulgent Copper Ore (237359)           |  Buy 0.74g  →  Sell 2.04g  |  Profit 1.30g/item  |  Margin +175.3%  |  2 buys / 3 sells  → STABLE
+  ★  Umbral Tin Ore (237362)                 |  Buy 0.62g  →  Sell 1.83g  |  Profit 1.21g/item  |  Margin +195.9%  |  4 buys / 3 sells  → STABLE
+  ★  Void-Tempered Leather (238511)          |  Buy 0.17g  →  Sell 0.84g  |  Profit 0.68g/item  |  Margin +411.8%  |  11 buys / 1 sells  → STABLE
+  ★  Mote of Wild Magic (236951)             |  Buy 0.08g  →  Sell 0.38g  |  Profit 0.30g/item  |  Margin +379.5%  |  10 buys / 1 sells  → STABLE
+  ★  Mote of Light (236949)                  |  Buy 0.17g  →  Sell 0.30g  |  Profit 0.13g/item  |  Margin +78.1%  |  9 buys / 2 sells  → STABLE
+  ★  Bright Linen (236965)                   |  Buy 0.28g  →  Sell 0.35g  |  Profit 0.07g/item  |  Margin +25.5%  |  1 buys / 1 sells  → STABLE
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+══════════════════════════════ PRICE HISTORY — Malfurion (snapshot 8) ══════════════════════════════
+  vs snapshot #7  |  ↑ 0 rising  ↓ 0 falling  → 53 stable  ✦ 0 new  
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Snapshot Time                Items
+  ────────────────────────────────────
+  2026-04-12 12:27:59             53
+  2026-04-12 12:23:23             53
+  2026-04-12 12:23:07             53
+  2026-04-12 12:19:08             53
+  2026-04-12 11:48:36             53
+  2026-04-12 11:42:34             53
+  2026-04-12 11:42:23             53
+  2026-04-12 11:41:58             53
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+  Report generated from: /home/davidjsteinke/tsm_data.json
+  Records analysed: 2197
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+═══════════════════════════════ CROSS-REALM ARBITRAGE OPPORTUNITIES ════════════════════════════════
+  Price spread > 20% after 5% AH cut  |  ranked by net profit per item
+  Source key: S=Sales history  B=Buys history
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Item                                    Buy Realm       Buy Price Src  Sell Realm       Sell Net Src      Profit    Spread   Txns
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Sin'dorei Quill (245776)                Malfurion        5699.99g   S  Maelstrom       37050.81g   B   31350.82g   +550.0%      2
+  Sin'dorei Snippers (244708)             Malfurion        2204.50g   B  Maelstrom       12249.30g   B   10044.80g   +455.6%      2
+  Majestic Hide (238529)                  Malfurion        3500.28g   B  Maelstrom       12397.97g   B    8897.69g   +254.2%      2
+  Sun-Blessed Needle Set (237950)         Malfurion        6886.92g   B  Maelstrom       11875.00g   B    4988.08g    +72.4%      2
+  Kaleidoscopic Prism (240974)            Moon Guard       1500.00g   B  Malfurion        6126.17g   S    4626.17g   +308.4%      2
+  Bright Linen Herbalism Hat (239645)     Malfurion         183.90g   S  Moon Guard       4750.00g   B    4566.10g  +2483.0%      3
+  Bold Biographer's Bifocals (240953)     Malfurion          61.27g   S  Maelstrom        4275.00g   B    4213.73g  +6877.3%      3
+  Fantastic Font Focuser (240954)         Malfurion         197.12g   S  Maelstrom        4275.00g   B    4077.88g  +2068.8%      3
+  Thalassian Skinning Knife (238011)      Malfurion         327.74g   S  Maelstrom        4108.85g   B    3781.11g  +1153.7%      2
+  Sin'dorei Engineer's Gloves (244624)    Moon Guard       1825.78g   B  Malfurion        5224.97g   B    3399.19g   +186.2%      2
+  Apprentice Smith's Apron (244627)       Malfurion          61.74g   S  Maelstrom        3322.15g   B    3260.41g  +5281.2%      3
+  Skinner's Backpack (244616)             Malfurion        1299.79g   S  Maelstrom        3794.05g   B    2494.26g   +191.9%      3
+  Hideworker's Cover (244619)             Malfurion         197.91g   S  Maelstrom        2645.72g   B    2447.81g  +1236.8%      4
+  Chef's Bright Linen Cooking Chapeau (2  Malfurion         454.66g   S  Maelstrom        2398.75g   B    1944.09g   +427.6%      4
+  Hobbyist Rolling Pin (245779)           Moon Guard        400.00g   B  Maelstrom        2315.62g   B    1915.62g   +478.9%      4
+  Bright Linen Alchemy Apron (239641)     Malfurion         116.17g   S  Moon Guard       1900.00g   B    1783.83g  +1535.6%      3
+  Farstrider Rock Satchel (244719)        Malfurion         688.75g   S  Maelstrom        2374.03g   B    1685.29g   +244.7%      3
+  Farstrider Hardhat (244715)             Malfurion         855.00g   S  Maelstrom        2369.28g   B    1514.29g   +177.1%      3
+  Thalassian Leatherworker's Knife (2380  Malfurion          95.91g   S  Maelstrom        1513.28g   B    1417.37g  +1477.8%      2
+  Farstrider Hobbyist Rod (244711)        Malfurion         759.52g   S  Moon Guard       1900.55g   B    1141.03g   +150.2%      4
+  Thalassian Blacksmith's Hammer (238013  Malfurion         645.04g   S  Maelstrom        1776.72g   B    1131.68g   +175.4%      2
+  Nocturnal Lotus (236780)                Maelstrom         312.50g   B  Malfurion        1439.48g   S    1126.98g   +360.6%      4
+  Hobbyist Alchemist's Mixing Rod (24577  Malfurion         127.14g   S  Moon Guard       1187.02g   B    1059.88g   +833.6%      3
+  Thalassian Pickaxe (238010)             Malfurion         783.26g   S  Maelstrom        1708.09g   B     924.83g   +118.1%      2
+  Apprentice Jeweler's Apron (244629)     Malfurion         406.21g   S  Moon Guard       1187.46g   B     781.26g   +192.3%      3
+  Thalassian Leatherworker's Toolset (23  Malfurion         474.99g   S  Maelstrom        1187.50g   B     712.50g   +150.0%      2
+  Sin'dorei Jeweler's Loupes (240959)     Moon Guard         80.00g   B  Malfurion         712.50g   B     632.50g   +790.6%      2
+  Eversong Botanist's Satchel (244615)    Moon Guard        894.00g   B  Malfurion        1517.79g   S     623.79g    +69.8%      4
+  Hobbyist Scribe's Quill (245775)        Malfurion         831.24g   S  Maelstrom        1425.00g   B     593.76g    +71.4%      2
+  Fantastic Fur (238525)                  Moon Guard         64.76g   B  Thrall            604.37g   B     539.61g   +833.3%      2
+  Farstrider Clampers (244713)            Moon Guard        750.91g   B  Malfurion        1286.05g   S     535.14g    +71.3%      3
+  Junker's Junk Visor (244709)            Malfurion         378.81g   S  Moon Guard        807.50g   B     428.69g   +113.2%      2
+  Thalassian Sickle (238009)              Malfurion         759.99g   S  Moon Guard       1187.50g   B     427.51g    +56.3%      2
+  Haranir Phial of Ingenuity (241312)     Malfurion         176.23g   S  Maelstrom         579.49g   B     403.26g   +228.8%      2
+  Petrified Root (251285)                 Malfurion          24.71g   S  Maelstrom         422.73g   B     398.03g  +1611.0%      4
+  Chemist's Cap (244620)                  Malfurion         555.74g   S  Moon Guard        945.66g   B     389.92g    +70.2%      3
+  Void-Tempered Hide (238519)             Malfurion          57.35g   S  Thrall            419.66g   S     362.31g   +631.7%      6
+  Farstrider Fabric Cutters (244707)      Malfurion        1324.79g   S  Maelstrom        1676.74g   B     351.95g    +26.6%      3
+  Tenebrous Amethyst (242606)             Moon Guard         94.50g   B  Malfurion         397.73g   S     303.24g   +320.9%      2
+  Contract: The Singularity (245794)      Maelstrom          87.21g   B  Thrall            380.94g   B     293.73g   +336.8%      2
+  Harandar Peridot (242607)               Moon Guard         86.20g   B  Malfurion         367.07g   S     280.88g   +325.9%      4
+  Amani Lapis (242554)                    Moon Guard        135.21g   B  Malfurion         365.36g   S     230.15g   +170.2%      5
+  Codified Azeroot (245764)               Moon Guard         30.67g   B  Malfurion         245.02g   S     214.35g   +699.0%      4
+  Bright Linen Spellthread (240157)       Malfurion          70.30g   S  Thrall            266.34g   B     196.04g   +278.9%      2
+  Thalassian Essence of the Faire (25192  Thrall            361.42g   S  Malfurion         550.52g   S     189.10g    +52.3%      2
+  Glimmering Gemdust (242620)             Moon Guard         44.86g   B  Malfurion         168.13g   S     123.26g   +274.8%     10
+  Flawless Sanguine Garnet (242613)       Malfurion         200.78g   S  Moon Guard        285.84g   B      85.06g    +42.4%      7
+  Void-Tempered Hide (238518)             Moon Guard          8.03g   B  Thrall             76.06g   S      68.03g   +847.0%      2
+  Dazzling Thorium (237366)               Malfurion          72.67g   S  Thrall            134.38g   S      61.71g    +84.9%      2
+  Sanguine Garnet (242553)                Malfurion         158.11g   B  Moon Guard        203.87g   B      45.76g    +28.9%      6
+  Munsell Ink (245801)                    Maelstrom           2.71g   B  Malfurion          43.64g   S      40.93g  +1508.7%      5
+  Argentleaf (236776)                     Maelstrom           0.25g   B  Thrall             27.98g   S      27.73g  +11140.5%      2
+  Eversong Trout (238383)                 Moon Guard          7.38g   B  Malfurion          33.79g   S      26.41g   +358.2%      3
+  Sin'dorei Armor Banding (244635)        Malfurion          93.28g   S  Maelstrom         116.38g   B      23.10g    +24.8%      3
+  Composite Flora (241281)                Maelstrom          16.19g   B  Moon Guard         33.84g   S      17.65g   +109.0%      2
+  Lightfused Mana Potion (241301)         Moon Guard          2.71g   S  Malfurion          19.98g   S      17.27g   +636.4%      2
+  Sunfire Silk (237015)                   Maelstrom           3.18g   B  Malfurion          19.38g   S      16.20g   +510.2%      6
+  Soul Cipher (245766)                    Moon Guard         51.83g   B  Maelstrom          67.34g   B      15.50g    +29.9%      5
+  Void-Tempered Plating (238520)          Moon Guard          0.81g   B  Thrall             13.51g   S      12.70g  +1558.0%      3
+  Void-Tempered Scales (238513)           Maelstrom           0.14g   B  Thrall             12.24g   S      12.10g  +8763.5%     11
+  Peerless Plumage (238522)               Malfurion          50.59g   S  Maelstrom          61.77g   B      11.18g    +22.1%     12
+  Sanguithorn Pigment (245865)            Maelstrom           0.04g   B  Malfurion           9.93g   S       9.89g  +22089.4%      3
+  Carving Canine (238523)                 Malfurion           1.83g   S  Thrall             10.68g   S       8.84g   +482.9%      3
+  Sienna Ink (245805)                     Maelstrom           4.29g   B  Malfurion          12.92g   B       8.63g   +200.9%      5
+  Umbral Tin Ore (237362)                 Moon Guard          0.66g   B  Thrall              9.25g   S       8.58g  +1296.9%      5
+  Azeroot (236774)                        Maelstrom           1.42g   B  Malfurion           8.46g   S       7.04g   +495.0%      8
+  Void-Tempered Plating (238521)          Malfurion           7.47g   S  Thrall             13.85g   S       6.37g    +85.2%      3
+  Sanguithorn (236770)                    Maelstrom           0.03g   B  Moon Guard          6.25g   S       6.22g  +23319.9%      2
+  Refulgent Copper Ore (237359)           Maelstrom           0.55g   B  Thrall              5.88g   S       5.34g   +977.1%      4
+  Imbued Bright Linen Bolt (239702)       Maelstrom           0.31g   B  Malfurion           5.53g   S       5.22g  +1705.8%     10
+  Tranquility Bloom (236761)              Maelstrom           0.07g   B  Thrall              4.26g   S       4.19g  +5962.6%      4
+  Haranir Phial of Ingenuity (241313)     Moon Guard          3.50g   B  Malfurion           6.77g   S       3.27g    +93.5%      2
+  Brilliant Silver Ore (237364)           Moon Guard          0.67g   B  Thrall              3.52g   S       2.85g   +422.3%      2
+  Mote of Primal Energy (236950)          Moon Guard          0.51g   B  Thrall              3.20g   S       2.69g   +531.8%     17
+  Arcanoweave (237018)                    Malfurion           6.54g   B  Maelstrom           9.10g   B       2.57g    +39.2%     10
+  Null Voidfish (238380)                  Malfurion           2.14g   S  Moon Guard          4.58g   B       2.44g   +114.1%      2
+  Mana Lily (236778)                      Maelstrom           0.21g   B  Malfurion           2.64g   S       2.43g  +1168.6%      4
+  Lynxfish (238366)                       Thrall              1.47g   B  Malfurion           2.71g   S       1.24g    +84.7%      3
+  Bright Linen Bolt (239700)              Maelstrom           1.02g   B  Malfurion           2.21g   B       1.20g   +117.5%      8
+  Eversinging Dust (243599)               Moon Guard          0.05g   B  Maelstrom           1.05g   B       1.00g  +2102.5%      7
+  Mote of Pure Void (236952)              Maelstrom           0.15g   B  Thrall              1.02g   S       0.87g   +589.6%      5
+  Argentleaf Pigment (245803)             Maelstrom           1.20g   B  Malfurion           2.04g   S       0.84g    +69.7%      4
+  Entropic Extract (268954)               Malfurion           0.10g   S  Moon Guard          0.88g   S       0.78g   +747.2%      2
+  Void-Tempered Leather (238511)          Maelstrom           0.04g   B  Malfurion           0.80g   S       0.76g  +1700.8%      9
+  Mote of Wild Magic (236951)             Maelstrom           0.15g   B  Thrall              0.85g   S       0.70g   +457.5%      9
+  Duskshrouded Stone (242788)             Malfurion           0.46g   B  Maelstrom           0.90g   B       0.44g    +96.6%      6
+  Sin'dorei Swarmer (238365)              Moon Guard          0.06g   B  Malfurion           0.50g   S       0.44g   +710.3%      3
+  Mote of Light (236949)                  Maelstrom           0.25g   B  Moon Guard          0.62g   B       0.38g   +153.0%     17
+  Radiant Shard (243602)                  Malfurion           0.26g   S  Moon Guard          0.60g   B       0.34g   +128.7%      3
+  Powder Pigment (245807)                 Malfurion           0.02g   B  Maelstrom           0.09g   B       0.07g   +328.4%      5
+  Basically Beef (223512)                 Malfurion           0.01g   S  Moon Guard          0.02g   S       0.01g   +177.7%      3
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  91 opportunities found  |  avg profit 1245.94g/item  |  best: Sin'dorei Quill (245776) @ +31350.82g (+550.0%)

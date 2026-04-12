@@ -1,0 +1,9 @@
+.env
+item_names.json
+tsm_data.json
+tsm_history.db
+logs/
+*.lua
+*.bak
+__pycache__/
+*.pyc
