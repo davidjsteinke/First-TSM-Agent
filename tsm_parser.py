@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 LUA_PATH = Path(
-    "/run/media/davidjsteinke/Games/Blizzard/World of Warcraft"
+    "/mnt/Games/Blizzard/World of Warcraft"
     "/_retail_/WTF/Account/QUESOMAN/SavedVariables/TradeSkillMaster.lua"
 )
 OUTPUT_PATH = Path("tsm_data.json")
