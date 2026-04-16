@@ -33,6 +33,7 @@ ENV_FILE    = SCRIPT_DIR / ".env"
 PRIMARY_REALM   = "Malfurion"
 MIDNIGHT_MIN_ID = 236000
 MIN_PROFIT_G    = 2.0   # minimum gold profit to appear in lists
+GAMES_MOUNT     = "/mnt/Games"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -117,13 +118,23 @@ def load_names() -> dict[str, str]:
 # Build buy/sell lists
 # ---------------------------------------------------------------------------
 
+def get_mv_status(has_mv_data: bool) -> str:
+    """Returns 'unmounted', 'no_sync', or 'ok'."""
+    if not has_mv_data:
+        if not os.path.ismount(GAMES_MOUNT):
+            return "unmounted"
+        return "no_sync"
+    return "ok"
+
+
 def build_reagent_signals(records: list[dict], names: dict,
                           market_values: dict[str, float]) -> tuple[list[dict], list[dict]]:
     """
     Returns (top_buys, top_sells) — each a list of reagent dicts.
 
-    BUYS:  TSM MV > avg recent buy price  → ranked by (TSM MV - avg buy)
-    SELLS: avg recent sell price > TSM MV → ranked by (avg sell - TSM MV)
+    Primary: TSM MV as reference price.
+    Fallback (no TSM MV): uses avg sell price as proxy market value for buy
+    signals, and avg buy price as proxy for sell signals.
     """
     buys  = [r for r in records if r.get("realm") == PRIMARY_REALM
              and r.get("type") == "Buys"  and r.get("source") == "Auction"]
@@ -159,24 +170,41 @@ def build_reagent_signals(records: list[dict], names: dict,
         s = sell_acc.get(iid)
         avg_buy  = (b["gold"] / b["qty"]) if b and b["qty"] else None
         avg_sell = (s["gold"] / s["qty"]) if s and s["qty"] else None
-        tsm_mv   = market_values.get(str(iid))
+        tsm_mv   = market_values.get(str(iid)) or None  # treat 0 as missing
         txns     = (b["txns"] if b else 0) + (s["txns"] if s else 0)
 
-        if tsm_mv is not None and avg_buy is not None:
-            profit = tsm_mv - avg_buy
-            if profit >= MIN_PROFIT_G:
-                buy_signals.append({
-                    "name": name, "tsm_mv": tsm_mv,
-                    "recent_price": avg_buy, "profit": profit, "txns": txns,
-                })
-
-        if tsm_mv is not None and avg_sell is not None:
-            profit = avg_sell - tsm_mv
-            if profit >= MIN_PROFIT_G:
-                sell_signals.append({
-                    "name": name, "tsm_mv": tsm_mv,
-                    "recent_price": avg_sell, "profit": profit, "txns": txns,
-                })
+        if tsm_mv is not None:
+            if avg_buy is not None:
+                profit = tsm_mv - avg_buy
+                if profit >= MIN_PROFIT_G:
+                    buy_signals.append({
+                        "name": name, "tsm_mv": tsm_mv,
+                        "recent_price": avg_buy, "profit": profit, "txns": txns,
+                        "fallback": False,
+                    })
+            if avg_sell is not None:
+                profit = avg_sell - tsm_mv
+                if profit >= MIN_PROFIT_G:
+                    sell_signals.append({
+                        "name": name, "tsm_mv": tsm_mv,
+                        "recent_price": avg_sell, "profit": profit, "txns": txns,
+                        "fallback": False,
+                    })
+        else:
+            # Fallback: compare personal buy vs sell prices directly
+            if avg_buy is not None and avg_sell is not None:
+                spread = avg_sell - avg_buy
+                if spread >= MIN_PROFIT_G:
+                    buy_signals.append({
+                        "name": name, "tsm_mv": avg_sell,
+                        "recent_price": avg_buy, "profit": spread, "txns": txns,
+                        "fallback": True,
+                    })
+                    sell_signals.append({
+                        "name": name, "tsm_mv": avg_buy,
+                        "recent_price": avg_sell, "profit": spread, "txns": txns,
+                        "fallback": True,
+                    })
 
     buy_signals.sort(key=lambda x: x["profit"], reverse=True)
     sell_signals.sort(key=lambda x: x["profit"], reverse=True)
@@ -188,7 +216,7 @@ def build_reagent_signals(records: list[dict], names: dict,
 # ---------------------------------------------------------------------------
 
 def format_message(top_buys: list[dict], top_sells: list[dict],
-                   has_mv_data: bool) -> str:
+                   mv_status: str) -> str:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     lines = [
@@ -197,20 +225,28 @@ def format_message(top_buys: list[dict], top_sells: list[dict],
         "",
     ]
 
-    if not has_mv_data:
+    if mv_status == "unmounted":
         lines += [
             "⚠️ *TSM market values not available — drive may be unmounted.*",
             "*Showing personal transaction history only.*",
             "",
         ]
+    elif mv_status == "no_sync":
+        lines += [
+            "⏳ *TSM market values not yet available — waiting for TSM Desktop App sync.*",
+            "*Signals below are based on personal buy/sell spread.*",
+            "",
+        ]
 
     if top_buys:
+        fallback = top_buys[0].get("fallback", False)
+        ref_label = "Est. sell" if fallback else "Market"
         lines.append("📈 **TOP 5 BUYS** *(buy now, sell at market value)*")
         for i, item in enumerate(top_buys, 1):
             lines.append(
                 f"{i}. **{item['name']}** — "
                 f"Buy @ {fmt_g(item['recent_price'])} | "
-                f"Market: {fmt_g(item['tsm_mv'])} | "
+                f"{ref_label}: {fmt_g(item['tsm_mv'])} | "
                 f"**+{fmt_g(item['profit'])} profit** "
                 f"({item['txns']} txns)"
             )
@@ -220,12 +256,14 @@ def format_message(top_buys: list[dict], top_sells: list[dict],
     lines.append("")
 
     if top_sells:
+        fallback = top_sells[0].get("fallback", False)
+        ref_label = "Est. buy" if fallback else "Market"
         lines.append("📉 **TOP 5 SELLS** *(list these now — above market)*")
         for i, item in enumerate(top_sells, 1):
             lines.append(
                 f"{i}. **{item['name']}** — "
                 f"Sell @ {fmt_g(item['recent_price'])} | "
-                f"Market: {fmt_g(item['tsm_mv'])} | "
+                f"{ref_label}: {fmt_g(item['tsm_mv'])} | "
                 f"**+{fmt_g(item['profit'])} premium** "
                 f"({item['txns']} txns)"
             )
@@ -247,12 +285,13 @@ def send_reagent_alert(webhook_url: str) -> bool:
     market_values = raw.get("market_values", {})
     names         = load_names()
 
-    has_mv_data = len(market_values) > 0
+    has_mv_data = any(v for v in market_values.values()) if market_values else False
+    mv_status   = get_mv_status(has_mv_data)
     top_buys, top_sells = build_reagent_signals(records, names, market_values)
 
-    logger.info(f"Buy signals: {len(top_buys)}  Sell signals: {len(top_sells)}")
+    logger.info(f"MV status: {mv_status}  Buy signals: {len(top_buys)}  Sell signals: {len(top_sells)}")
 
-    message = format_message(top_buys, top_sells, has_mv_data)
+    message = format_message(top_buys, top_sells, mv_status)
 
     resp = requests.post(
         webhook_url,

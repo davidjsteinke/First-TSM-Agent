@@ -15,7 +15,7 @@ LUA_PATH = Path(
     "/mnt/Games/Blizzard/World of Warcraft"
     "/_retail_/WTF/Account/QUESOMAN/SavedVariables/TradeSkillMaster.lua"
 )
-OUTPUT_PATH = Path("tsm_data.json")
+OUTPUT_PATH = Path.home() / "tsm_data.json"
 
 # Keys that carry price + counterparty data
 PRICED_KEYS = re.compile(
@@ -56,6 +56,14 @@ def parse_item_string(item_string: str) -> dict:
     }
 
 
+_TYPE_NAMES = {
+    "csvBuys": "Buys",
+    "csvSales": "Sales",
+    "csvCancelled": "Cancelled",
+    "csvExpired": "Expired",
+}
+
+
 def parse_csv_block(realm: str, entry_type: str, raw_csv: str) -> list[dict]:
     """Parse a single CSV block into a list of record dicts."""
     # TSM stores newlines as literal \n inside the Lua string
@@ -68,7 +76,7 @@ def parse_csv_block(realm: str, entry_type: str, raw_csv: str) -> list[dict]:
             item_info = parse_item_string(row["itemString"].strip())
             record = {
                 "realm": realm,
-                "type": entry_type,
+                "type": _TYPE_NAMES.get(entry_type, entry_type),
                 "item_id": item_info["item_id"],
                 "item_string": item_info["item_string"],
                 "bonus_ids": item_info["bonus_ids"],
@@ -155,8 +163,8 @@ def extract_all_records(lua_text: str) -> list[dict]:
 
 def build_summary(records: list[dict]) -> dict:
     """Aggregate high-level stats for the output."""
-    buys = [r for r in records if r["type"] == "csvBuys"]
-    sales = [r for r in records if r["type"] == "csvSales"]
+    buys = [r for r in records if r["type"] == "Buys"]
+    sales = [r for r in records if r["type"] == "Sales"]
 
     def total_gold(recs):
         return round(sum(r.get("price_gold", 0) for r in recs), 4)
@@ -165,8 +173,8 @@ def build_summary(records: list[dict]) -> dict:
         "total_records": len(records),
         "buys": len(buys),
         "sales": len(sales),
-        "cancelled": sum(1 for r in records if r["type"] == "csvCancelled"),
-        "expired": sum(1 for r in records if r["type"] == "csvExpired"),
+        "cancelled": sum(1 for r in records if r["type"] == "Cancelled"),
+        "expired": sum(1 for r in records if r["type"] == "Expired"),
         "total_spent_gold": total_gold(buys),
         "total_earned_gold": total_gold(sales),
     }
