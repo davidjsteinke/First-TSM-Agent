@@ -28,8 +28,15 @@ ts() { while IFS= read -r line; do printf '[%s] %s\n' "$(date -u '+%Y-%m-%d %H:%
     echo "--- [3/4] arbitrage.py"
     "$PYTHON" "$SCRIPT_DIR/arbitrage.py" 2>&1
 
-    echo "--- [4/4] generate_dashboard.py"
+    echo "--- [4/5] generate_dashboard.py"
     "$PYTHON" "$SCRIPT_DIR/generate_dashboard.py" 2>&1
+
+    echo "--- [5/5] Publish to GitHub Pages"
+    TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+    cd "$SCRIPT_DIR"
+    git add docs/index.html dashboard_public.html 2>&1 || true
+    git commit -m "Dashboard update - ${TIMESTAMP}" 2>&1 || true
+    git push origin main 2>&1 || echo "[warn] git push failed — check SSH key or network"
 
     echo "--- done"
 } 2>&1 | ts | tee -a "$LOG_FILE"

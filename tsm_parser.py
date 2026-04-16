@@ -25,6 +25,11 @@ PRICED_KEYS = re.compile(
 SLIM_KEYS = re.compile(
     r'\["r@([^@"]+)@internalData@(csvCancelled|csvExpired)"\]\s*=\s*"((?:[^"\\]|\\.)*)"'
 )
+# TSM 14-day region market value average (stored as "i:ID:copper,..." string)
+MARKET_VALUE_KEYS = re.compile(
+    r'\["r@([^@"]+)@internalData@(?:dbRegionMarketValueAvg|dbMarketValue|marketValue)"\]'
+    r'\s*=\s*"((?:[^"\\]|\\.)*)"'
+)
 
 
 def copper_to_gold(copper: int) -> float:
@@ -99,6 +104,31 @@ def parse_csv_block(realm: str, entry_type: str, raw_csv: str) -> list[dict]:
     return records
 
 
+def parse_market_values(lua_text: str) -> dict[int, float]:
+    """
+    Parse TSM 14-day market value averages from the Lua file.
+    Handles the "i:ID:copper_value,..." string format TSM uses.
+    Returns {item_id: gold_value}.
+    """
+    values: dict[int, float] = {}
+    for match in MARKET_VALUE_KEYS.finditer(lua_text):
+        data = match.group(2).replace("\\n", "")
+        for entry in re.split(r"[,^]", data):
+            entry = entry.strip()
+            if not entry:
+                continue
+            parts = entry.split(":")
+            if len(parts) >= 3 and parts[0] == "i":
+                try:
+                    item_id = int(parts[1])
+                    copper = int(parts[-1])
+                    if copper > 0 and item_id not in values:
+                        values[item_id] = round(copper / 10_000, 4)
+                except (ValueError, IndexError):
+                    pass
+    return values
+
+
 def extract_all_records(lua_text: str) -> list[dict]:
     """Find every CSV block in the Lua file and parse it."""
     all_records: list[dict] = []
@@ -156,11 +186,20 @@ def main():
     summary = build_summary(records)
     print(f"\nSummary: {summary}")
 
+    print("Extracting TSM market values...")
+    try:
+        market_values = parse_market_values(lua_text)
+        print(f"  Found market values for {len(market_values)} items")
+    except Exception as exc:
+        print(f"  [warn] Market value parsing failed: {exc}")
+        market_values = {}
+
     output = {
         "generated_at": datetime.now(tz=timezone.utc).isoformat(),
         "source_file": str(LUA_PATH),
         "summary": summary,
         "records": records,
+        "market_values": {str(k): v for k, v in market_values.items()},
     }
 
     OUTPUT_PATH.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")

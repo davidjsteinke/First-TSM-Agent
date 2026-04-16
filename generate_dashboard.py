@@ -7,20 +7,61 @@ No server, no external dependencies. Open the file directly in any browser.
 """
 
 import json
+import re
+import shutil
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 # Resolve paths relative to this file so the script works from any CWD
-SCRIPT_DIR   = Path(__file__).parent
-DATA_FILE    = Path.home() / "tsm_data.json"
-NAMES_FILE   = Path.home() / "item_names.json"
-DASHBOARD    = SCRIPT_DIR / "dashboard.html"
+SCRIPT_DIR      = Path(__file__).parent
+DATA_FILE       = Path.home() / "tsm_data.json"
+NAMES_FILE      = Path.home() / "item_names.json"
+DASHBOARD       = SCRIPT_DIR / "dashboard.html"
+PUBLIC_DASH     = SCRIPT_DIR / "dashboard_public.html"
+DOCS_DIR        = SCRIPT_DIR / "docs"
 
 PRIMARY_REALM    = "Malfurion"
 AH_CUT           = 0.05
 MIN_SPREAD_PCT   = 20.0
+
+# Midnight expansion item IDs start here (Thalassian / Blood Elf / Quel'Thalas themed)
+MIDNIGHT_MIN_ID = 236000
+
+# Keywords that identify gear/consumables to exclude from reagent classification
+_GEAR_CONSUMABLE_EXCL = {
+    "sabatons", "greaves", "gauntlets", "handguards", "helm", "coif", "cover",
+    "pauldrons", "spaulders", "shoulderguards", "epaulets", "shoulderpads",
+    "breastplate", "cuirass", "tunic", "vest", "doublet", "jerkin",
+    "leggings", "breeches", "trousers", "waders",
+    "bracers", "wristwraps", "armguards", "cuffs",
+    "waistband", "sash", "cinch",
+    "cloak", "cape", "shawl",
+    "signet", "locket",
+    "necklace", "pendant", "amulet", "medallion",
+    "sword", "blade", "dagger",
+    "maul", "club", "cudgel", "censer",
+    "wand", "scepter",
+    "crossbow", "arquebus",
+    "shield", "aegis", "bulwark",
+    "greatsword", "polearm", "glaive", "spear",
+    "potion", "phial", "flask", "elixir", "tonic", "draught",
+    "stew", "cutlets", "roast", "sandwich", "tea", "bites",
+    "rations", "skewers", "butter", "spices", "fixings", "chutney",
+    "enchant ", "vantus rune", "contract:", "missive",
+    "glamour", "illusory adornment",
+    "treatise",
+}
+
+
+def is_midnight_reagent(name: str, item_id: int) -> bool:
+    if item_id < MIDNIGHT_MIN_ID:
+        return False
+    lower = name.lower()
+    if _is_profession_item(name):
+        return False
+    return not any(kw in lower for kw in _GEAR_CONSUMABLE_EXCL)
 
 # ---------------------------------------------------------------------------
 # Analysis helpers (self-contained — no imports from agent/arbitrage)
@@ -207,19 +248,83 @@ def build_stop_buying(profit_stats: list[dict], names: dict) -> list[dict]:
     return stop
 
 
+def build_reagents(records: list[dict], names: dict,
+                   market_values: dict[str, float]) -> list[dict]:
+    """
+    Midnight-era reagents present in personal transaction history.
+    Shows TSM market value, recent buy/sell price, and profit potential.
+    """
+    buys  = [r for r in records if r.get("realm") == PRIMARY_REALM
+             and r.get("type") == "Buys"  and r.get("source") == "Auction"]
+    sales = [r for r in records if r.get("realm") == PRIMARY_REALM
+             and r.get("type") == "Sales" and r.get("source") == "Auction"]
+
+    buy_acc  = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
+    sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
+
+    all_item_ids: set[int] = set()
+    for r in buys:
+        iid = r["item_id"]
+        buy_acc[iid]["gold"] += r["price_gold"]
+        buy_acc[iid]["qty"]  += r["quantity"]
+        buy_acc[iid]["txns"] += 1
+        all_item_ids.add(iid)
+    for r in sales:
+        iid = r["item_id"]
+        sell_acc[iid]["gold"] += r["price_gold"]
+        sell_acc[iid]["qty"]  += r["quantity"]
+        sell_acc[iid]["txns"] += 1
+        all_item_ids.add(iid)
+
+    out = []
+    for iid in all_item_ids:
+        name = names.get(str(iid), f"Item {iid}")
+        if not is_midnight_reagent(name, iid):
+            continue
+
+        b = buy_acc.get(iid)
+        s = sell_acc.get(iid)
+        avg_buy  = (b["gold"] / b["qty"]) if b and b["qty"] else None
+        avg_sell = (s["gold"] / s["qty"]) if s and s["qty"] else None
+        tsm_mv   = market_values.get(str(iid))
+        txn_count = (b["txns"] if b else 0) + (s["txns"] if s else 0)
+
+        # Profit potential: how much you'd make buying at recent price → selling at market
+        profit_potential = None
+        if tsm_mv is not None and avg_buy is not None:
+            profit_potential = tsm_mv - avg_buy
+
+        out.append({
+            "item_id":          iid,
+            "item_name":        name,
+            "tsm_market_value": tsm_mv,
+            "avg_buy":          avg_buy,
+            "avg_sell":         avg_sell,
+            "profit_potential": profit_potential,
+            "transaction_count": txn_count,
+        })
+
+    out.sort(key=lambda x: (
+        x["profit_potential"] if x["profit_potential"] is not None else float("-inf")
+    ), reverse=True)
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Build dashboard data payload
 # ---------------------------------------------------------------------------
 
 def build_data() -> dict:
     raw = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-    records = raw["records"]
-    names   = load_item_names()
+    records       = raw["records"]
+    names         = load_item_names()
+    market_values = raw.get("market_values", {})
 
     profit_stats      = build_profit_stats(records)
     arbitrage         = build_arbitrage(records)
     repricing         = build_repricing(records)
     stop_buying_stats = build_stop_buying(profit_stats, names)
+    reagent_rows      = build_reagents(records, names, market_values)
 
     enrich = lambda s: {**s, "item_name": item_name(s["item_id"], names)}
 
@@ -255,11 +360,13 @@ def build_data() -> dict:
             "total_gold_lost":     total_lost,
             "worst_sb_name":       worst_sb["item_name"] if worst_sb else "—",
             "worst_sb_loss":       worst_sb["total_gold_lost"] if worst_sb else 0,
+            "reagent_count":       len(reagent_rows),
         },
         "profit":      profit_rows,
         "arbitrage":   arb_rows,
         "repricing":   reprice_rows,
         "stop_buying": stop_buying_rows,
+        "reagents":    reagent_rows,
     }
 
 
@@ -406,12 +513,14 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
   <div class="tab" data-panel="arbitrage">Cross-Realm Arbitrage</div>
   <div class="tab" data-panel="repricing">Repricing Concerns</div>
   <div class="tab" data-panel="stop-buying" style="color:var(--red)">⛔ Stop Buying</div>
+  <div class="tab" data-panel="reagents" style="color:var(--blue)">⚗ Reagents</div>
 </div>
 
 <div id="profit" class="panel active"></div>
 <div id="arbitrage" class="panel"></div>
 <div id="repricing" class="panel"></div>
 <div id="stop-buying" class="panel"></div>
+<div id="reagents" class="panel"></div>
 
 <div class="footer">Generated from <span id="source-file"></span></div>
 
@@ -677,6 +786,90 @@ function initStopBuying() {
   render();
 }
 
+// ---- Reagents table ----
+function initReagents() {
+  const container = g('reagents');
+  const rows = DATA.reagents || [];
+
+  if (!rows.length) {
+    container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted)">No Midnight-era reagents found in transaction history.</div>';
+    return;
+  }
+
+  const hasMV = rows.some(r => r.tsm_market_value != null);
+  const cols = [
+    { key: 'item_name',        label: 'Item',             num: false },
+    { key: 'tsm_market_value', label: 'TSM Market Value', num: true,  format: 'gold_mv' },
+    { key: 'avg_buy',          label: 'My Avg Buy',       num: true,  format: 'gold_opt' },
+    { key: 'avg_sell',         label: 'My Avg Sell',      num: true,  format: 'gold_opt' },
+    { key: 'profit_potential', label: 'Profit Potential', num: true,  format: 'profit_g' },
+    { key: 'transaction_count',label: 'Txns',             num: true,  format: 'int' },
+  ];
+
+  let sortCol = 4, sortAsc = false;
+
+  function rowBg(row) {
+    const pp = row.profit_potential;
+    if (pp == null) return '';
+    if (pp > 5)    return 'row-green';
+    if (pp > 0)    return 'row-yellow';
+    return 'row-red';
+  }
+
+  function render() {
+    const sorted = [...rows].sort((a, b) => {
+      const col = cols[sortCol];
+      const va = a[col.key], vb = b[col.key];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1; if (vb == null) return -1;
+      const cmp = col.num ? (va - vb) : String(va).localeCompare(String(vb));
+      return sortAsc ? cmp : -cmp;
+    });
+
+    const thead = cols.map((c, i) => {
+      const cls = i === sortCol ? ' class="sorted"' : '';
+      const icon = i === sortCol
+        ? (sortAsc ? ' <span class="sort-icon">↑</span>' : ' <span class="sort-icon">↓</span>')
+        : ' <span class="sort-icon" style="opacity:.25">↕</span>';
+      return `<th${cls} data-col="${i}">${c.label}${icon}</th>`;
+    }).join('');
+
+    const tbody = sorted.map(row => {
+      const rc = rowBg(row);
+      const cells = cols.map(c => {
+        const v = row[c.key];
+        if (c.format === 'gold_mv')  return `<td>${v != null ? fmt_g(v) : '<span class="muted">No data</span>'}</td>`;
+        if (c.format === 'gold_opt') return `<td>${v != null ? fmt_g(v) : '<span class="muted">—</span>'}</td>`;
+        if (c.format === 'profit_g') {
+          if (v == null) return '<td class="muted">—</td>';
+          const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted';
+          return `<td class="${cls}">${(v >= 0 ? '+' : '') + fmt_g(v)}</td>`;
+        }
+        if (c.format === 'int') return `<td>${v ?? '—'}</td>`;
+        return `<td>${v ?? '—'}</td>`;
+      }).join('');
+      return `<tr class="${rc}">${cells}</tr>`;
+    }).join('');
+
+    const mvNote = hasMV ? '' : '<div style="padding:8px 14px;font-size:.8rem;color:var(--yellow)">⚠ TSM market values not yet available — drive may be unmounted. Prices show personal transaction history only.</div>';
+
+    container.innerHTML = `${mvNote}<div class="table-wrap"><table>
+      <thead><tr>${thead}</tr></thead>
+      <tbody>${tbody}</tbody>
+    </table></div>`;
+
+    container.querySelectorAll('thead th').forEach(th => {
+      th.addEventListener('click', () => {
+        const ci = +th.dataset.col;
+        if (ci === sortCol) sortAsc = !sortAsc;
+        else { sortCol = ci; sortAsc = false; }
+        render();
+      });
+    });
+  }
+  render();
+}
+
 // ---- Boot ----
 initMeta();
 initCards();
@@ -685,10 +878,26 @@ initProfit();
 initArbitrage();
 initRepricing();
 initStopBuying();
+initReagents();
 </script>
 </body>
 </html>
 """
+
+
+# ---------------------------------------------------------------------------
+# Public-safe sanitization
+# ---------------------------------------------------------------------------
+
+# Character names and account names that appear in the personal data.
+# These are NOT embedded in the processed dashboard rows, but we sanitize
+# the source_file path which contains the Linux username.
+_HOME_RE = re.compile(r'/home/[^/"]+/')
+
+
+def sanitize_html(html: str) -> str:
+    """Replace personal path info for the public GitHub Pages build."""
+    return _HOME_RE.sub('/home/Character/', html)
 
 
 # ---------------------------------------------------------------------------
@@ -703,6 +912,7 @@ def main():
     print(f"  Stop Buying rows: {len(data['stop_buying'])}")
     print(f"  Arbitrage rows:   {len(data['arbitrage'])}")
     print(f"  Repricing rows:   {len(data['repricing'])}")
+    print(f"  Reagent rows:     {len(data['reagents'])}")
 
     # Embed data — JSON is valid JS; escape </script> to prevent tag injection
     json_str = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
@@ -711,6 +921,16 @@ def main():
     html = HTML_TEMPLATE.replace('__DATA_JSON__', json_str)
     DASHBOARD.write_text(html, encoding="utf-8")
     print(f"Dashboard written to {DASHBOARD}")
+
+    # --- Public dashboard (GitHub Pages) ---
+    public_html = sanitize_html(html)
+    PUBLIC_DASH.write_text(public_html, encoding="utf-8")
+    print(f"Public dashboard written to {PUBLIC_DASH}")
+
+    DOCS_DIR.mkdir(exist_ok=True)
+    docs_index = DOCS_DIR / "index.html"
+    shutil.copy2(PUBLIC_DASH, docs_index)
+    print(f"Copied to {docs_index}")
 
 
 if __name__ == "__main__":
