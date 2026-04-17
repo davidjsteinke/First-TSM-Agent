@@ -340,14 +340,10 @@ def format_message(top_buys: list[dict], top_sells: list[dict],
 
     if mv_status == "unmounted":
         lines += [
-            "⚠️ *TSM market values not available — drive may be unmounted.*",
+            "⚠️ *Games drive unmounted — falling back to personal price history.*",
             "",
         ]
-    elif mv_status == "no_sync":
-        lines += [
-            "⏳ *TSM market values not yet synced — using live AH / personal prices.*",
-            "",
-        ]
+    # No message for no_sync: live AH is the intended primary source now
 
     if top_buys:
         lines.append("📈 **TOP 5 BUYS** *(buy now — AH price below your avg sell)*")

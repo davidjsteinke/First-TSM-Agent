@@ -128,9 +128,11 @@ def build_profit_stats(records: list[dict]) -> list[dict]:
 
 
 def build_arbitrage(records: list[dict]) -> list[dict]:
+    # Bankarang-only: cross-realm flipping only matters if Bankarang is doing it.
     raw: dict = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     for r in records:
         if r.get("source") != "Auction": continue
+        if r.get("player") != FLIPPER:   continue
         dtype = r.get("type")
         if dtype not in ("Sales", "Buys"): continue
         iid  = r.get("item_id")
@@ -261,10 +263,11 @@ def build_stop_buying(profit_stats: list[dict], names: dict) -> list[dict]:
 
 
 def build_reagents(records: list[dict], names: dict,
-                   market_values: dict[str, float]) -> list[dict]:
+                   market_values: dict[str, float],
+                   live_ah_dict: dict[int, dict] | None = None) -> list[dict]:
     """
     Midnight-era reagents present in personal transaction history.
-    Shows TSM market value, recent buy/sell price, and profit potential.
+    Uses live AH price as primary reference; falls back to TSM MV if present.
     """
     buys  = [r for r in records if r.get("realm") == PRIMARY_REALM
              and r.get("type") == "Buys"  and r.get("source") == "Auction"]
@@ -298,18 +301,22 @@ def build_reagents(records: list[dict], names: dict,
         s = sell_acc.get(iid)
         avg_buy  = (b["gold"] / b["qty"]) if b and b["qty"] else None
         avg_sell = (s["gold"] / s["qty"]) if s and s["qty"] else None
-        tsm_mv   = market_values.get(str(iid))
         txn_count = (b["txns"] if b else 0) + (s["txns"] if s else 0)
 
-        # Profit potential: how much you'd make buying at recent price → selling at market
-        profit_potential = None
-        if tsm_mv is not None and avg_buy is not None:
-            profit_potential = tsm_mv - avg_buy
+        live_snap   = (live_ah_dict or {}).get(iid)
+        live_ah_min = live_snap["min_price"] if live_snap else None
+        live_ah_avg = live_snap["avg_price"] if live_snap else None
+
+        # Profit potential: buy at personal avg → sell at current live AH min
+        # Falls back to TSM MV if live AH not available
+        ref_price = live_ah_min or market_values.get(str(iid))
+        profit_potential = (ref_price - avg_buy) if (ref_price and avg_buy) else None
 
         out.append({
             "item_id":          iid,
             "item_name":        name,
-            "tsm_market_value": tsm_mv,
+            "live_ah_min":      live_ah_min,
+            "live_ah_avg":      live_ah_avg,
             "avg_buy":          avg_buy,
             "avg_sell":         avg_sell,
             "profit_potential": profit_potential,
@@ -381,19 +388,29 @@ def _item_category(item_id: int, item_name_str: str) -> str:
     return "Reagent"
 
 
+MAX_LIVE_AH_ROWS_OTHER = 200   # cap for non-Malfurion realms (no Bankarang filter)
+
+
 def build_live_ah_data(records: list[dict], names: dict) -> dict:
     """
     Build the Live AH tab data for all 5 realms.
-    Returns {realm: [row, ...]} where each row has live AH + Bankarang prices.
+
+    Malfurion: only rows where Bankarang has historical buy or sell data —
+    the "—" rows for items Bankarang has never touched are noise here.
+
+    Other realms: top MAX_LIVE_AH_ROWS_OTHER items by listing count (most active).
+    Capped to keep the dashboard HTML small and tab-switching fast.
     """
     try:
         live_ah_db.init_db()
     except Exception:
-        return {"realms": ALL_REALMS, "by_realm": {}, "last_updated": None}
+        return {"realms": ALL_REALMS, "by_realm": {}, "last_updated": None,
+                "total_counts": {}}
 
     ban_prices = _bankarang_prices(records)
 
     by_realm: dict[str, list[dict]] = {}
+    total_counts: dict[str, int] = {}
     last_updated = None
 
     for realm in ALL_REALMS:
@@ -401,20 +418,27 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
             snapshots = live_ah_db.get_all_latest_snapshots(realm)
         except Exception:
             by_realm[realm] = []
+            total_counts[realm] = 0
             continue
 
+        total_counts[realm] = len(snapshots)
         rows = []
+
         for snap in snapshots:
             iid  = snap["item_id"]
-            name = names.get(str(iid), f"Item {iid}")
             bp   = ban_prices.get(iid, {})
-
             avg_buy  = bp.get("avg_buy")
             avg_sell = bp.get("avg_sell")
+
+            # Malfurion: skip rows with no Bankarang history (they're just market noise)
+            if realm == PRIMARY_REALM and avg_buy is None and avg_sell is None:
+                continue
+
+            name     = names.get(str(iid), f"Item {iid}")
             live_min = snap["min_price"]
             live_avg = snap["avg_price"]
 
-            # Spread: live AH vs Bankarang's personal prices (Malfurion only)
+            # Spread: how far live AH min is from Bankarang's averages (Malfurion only)
             spread_pct = None
             if realm == PRIMARY_REALM:
                 if avg_sell and live_min:
@@ -442,17 +466,24 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
                 "last_updated":         ts,
             })
 
-        # Default sort: largest absolute spread first (Malfurion), then by min price
-        rows.sort(
-            key=lambda r: (abs(r["spread_pct"]) if r["spread_pct"] is not None else 0),
-            reverse=True,
-        )
+        # Sort: Malfurion by absolute spread desc (most actionable first)
+        #       other realms by listing_count desc (most active market first)
+        if realm == PRIMARY_REALM:
+            rows.sort(
+                key=lambda r: (abs(r["spread_pct"]) if r["spread_pct"] is not None else 0),
+                reverse=True,
+            )
+        else:
+            rows.sort(key=lambda r: r["listing_count"], reverse=True)
+            rows = rows[:MAX_LIVE_AH_ROWS_OTHER]
+
         by_realm[realm] = rows
 
     return {
         "realms":       ALL_REALMS,
         "by_realm":     by_realm,
         "last_updated": last_updated,
+        "total_counts": total_counts,
     }
 
 
@@ -466,11 +497,19 @@ def build_data() -> dict:
     names         = load_item_names()
     market_values = raw.get("market_values", {})
 
+    # Build live AH lookup dict for reagents tab (full Malfurion data, not filtered)
+    try:
+        live_ah_db.init_db()
+        _malf_snaps = live_ah_db.get_all_latest_snapshots(PRIMARY_REALM)
+        live_malfurion_dict: dict[int, dict] = {s["item_id"]: s for s in _malf_snaps}
+    except Exception:
+        live_malfurion_dict = {}
+
     profit_stats      = build_profit_stats(records)
     arbitrage         = build_arbitrage(records)
     repricing         = build_repricing(records)
     stop_buying_stats = build_stop_buying(profit_stats, names)
-    reagent_rows      = build_reagents(records, names, market_values)
+    reagent_rows      = build_reagents(records, names, market_values, live_malfurion_dict)
     live_ah           = build_live_ah_data(records, names)
 
     enrich = lambda s: {**s, "item_name": item_name(s["item_id"], names)}
@@ -488,7 +527,7 @@ def build_data() -> dict:
     total_lost  = sum(s["total_gold_lost"] for s in stop_buying_rows)
 
     malf_live = live_ah["by_realm"].get(PRIMARY_REALM, [])
-    live_item_count = len(malf_live)
+    live_item_count = live_ah.get("total_counts", {}).get(PRIMARY_REALM, len(malf_live))
 
     return {
         "meta": {
@@ -963,17 +1002,17 @@ function initReagents() {
     return;
   }
 
-  const hasMV = rows.some(r => r.tsm_market_value != null);
   const cols = [
     { key: 'item_name',        label: 'Item',             num: false },
-    { key: 'tsm_market_value', label: 'TSM Market Value', num: true,  format: 'gold_mv' },
+    { key: 'live_ah_min',      label: 'Live AH Min',      num: true,  format: 'gold_live' },
+    { key: 'live_ah_avg',      label: 'Live AH Avg',      num: true,  format: 'gold_opt' },
     { key: 'avg_buy',          label: 'My Avg Buy',       num: true,  format: 'gold_opt' },
     { key: 'avg_sell',         label: 'My Avg Sell',      num: true,  format: 'gold_opt' },
     { key: 'profit_potential', label: 'Profit Potential', num: true,  format: 'profit_g' },
     { key: 'transaction_count',label: 'Txns',             num: true,  format: 'int' },
   ];
 
-  let sortCol = 4, sortAsc = false;
+  let sortCol = 5, sortAsc = false;
 
   function rowBg(row) {
     const pp = row.profit_potential;
@@ -1005,8 +1044,8 @@ function initReagents() {
       const rc = rowBg(row);
       const cells = cols.map(c => {
         const v = row[c.key];
-        if (c.format === 'gold_mv')  return `<td>${v != null ? fmt_g(v) : '<span class="muted">No data</span>'}</td>`;
-        if (c.format === 'gold_opt') return `<td>${v != null ? fmt_g(v) : '<span class="muted">—</span>'}</td>`;
+        if (c.format === 'gold_live') return `<td>${v != null ? fmt_g(v) : '<span class="muted">No AH data</span>'}</td>`;
+        if (c.format === 'gold_opt')  return `<td>${v != null ? fmt_g(v) : '<span class="muted">—</span>'}</td>`;
         if (c.format === 'profit_g') {
           if (v == null) return '<td class="muted">—</td>';
           const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted';
@@ -1018,9 +1057,12 @@ function initReagents() {
       return `<tr class="${rc}">${cells}</tr>`;
     }).join('');
 
-    const mvNote = hasMV ? '' : '<div style="padding:8px 14px;font-size:.8rem;color:var(--yellow)">⚠ TSM market values not yet available — drive may be unmounted. Prices show personal transaction history only.</div>';
+    const hasLive = rows.some(r => r.live_ah_min != null);
+    const note = hasLive
+      ? '<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">📡 Prices from live Blizzard AH data · Profit = Live AH Min − Your Avg Buy</div>'
+      : '<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">No live AH data yet — run refresh_live_ah.sh to populate.</div>';
 
-    container.innerHTML = `${mvNote}<div class="table-wrap"><table>
+    container.innerHTML = `${note}<div class="table-wrap"><table>
       <thead><tr>${thead}</tr></thead>
       <tbody>${tbody}</tbody>
     </table></div>`;
@@ -1043,6 +1085,7 @@ function initLiveAH() {
   const liveData  = DATA.live_ah || {};
   const realms    = liveData.realms || [];
   const byRealm   = liveData.by_realm || {};
+  const totals    = liveData.total_counts || {};
 
   if (!realms.length) {
     container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted)">No Live AH data available. Run refresh_live_ah.sh to populate.</div>';
@@ -1051,6 +1094,17 @@ function initLiveAH() {
 
   let activeRealm = realms[0];
   let sortCol = 9, sortAsc = false;  // default: spread_pct desc
+
+  const TOOLTIPS = {
+    'live_ah_min':        'Cheapest single listing currently on the AH',
+    'live_ah_avg':        'Average price across all current listings',
+    'total_quantity':     'Total units available across all listings',
+    'listing_count':      'Number of separate auctions on the AH right now',
+    'bankarang_avg_buy':  "Bankarang's weighted average buy price (Malfurion only)",
+    'bankarang_avg_sell': "Bankarang's weighted average sell price (Malfurion only)",
+    'buy_txns':           'Number of Bankarang buy transactions',
+    'spread_pct':         'Live AH vs Bankarang avg — positive = buy opportunity, negative = price above avg sell',
+  };
 
   const cols = [
     { key: 'item_name',          label: 'Item',               num: false },
@@ -1095,7 +1149,8 @@ function initLiveAH() {
       const icon = i === sortCol
         ? (sortAsc ? ' <span class="sort-icon">↑</span>' : ' <span class="sort-icon">↓</span>')
         : ' <span class="sort-icon" style="opacity:.25">↕</span>';
-      return `<th${cls} data-col="${i}">${c.label}${icon}</th>`;
+      const tip = TOOLTIPS[c.key] ? ` title="${TOOLTIPS[c.key]}"` : '';
+      return `<th${cls}${tip} data-col="${i}">${c.label}${icon}</th>`;
     }).join('');
 
     const isMainRealm = activeRealm === 'Malfurion';
@@ -1129,9 +1184,11 @@ function initLiveAH() {
       ? '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--muted)">No data for this realm</td></tr>'
       : tbody;
 
+    const dispCount  = (byRealm[activeRealm] || []).length;
+    const totalCount = totals[activeRealm] || dispCount;
     const note = activeRealm !== 'Malfurion'
-      ? '<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">ℹ Bankarang Buy/Sell columns are Malfurion-only — blank for other realms.</div>'
-      : '<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">🟢 Green = live price below Bankarang avg buy (flip opp) · 🔴 Red = live price above Bankarang avg sell · Flipping analysis: Bankarang only</div>';
+      ? `<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">ℹ Showing top ${dispCount} of ${totalCount.toLocaleString()} items by listing volume · Bankarang Buy/Sell columns are Malfurion-only</div>`
+      : `<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">🟢 Green = live price &gt;20% below Bankarang avg buy · 🔴 Red = live price &gt;20% above Bankarang avg sell · Showing ${dispCount} items with Bankarang history (of ${totalCount.toLocaleString()} on AH)</div>`;
 
     return `${note}<div class="table-wrap"><table>
       <thead><tr>${thead}</tr></thead>
@@ -1154,6 +1211,9 @@ function initLiveAH() {
     container.querySelectorAll('.realm-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         activeRealm = btn.dataset.realm;
+        // Malfurion: sort by spread (most actionable); others: sort by listing_count
+        sortCol = activeRealm === 'Malfurion' ? 9 : 5;
+        sortAsc = false;
         render();
       });
     });
@@ -1220,9 +1280,12 @@ def main():
     print(f"  Repricing rows:   {len(data['repricing'])}")
     print(f"  Reagent rows:     {len(data['reagents'])}")
     live = data.get("live_ah", {})
+    totals = live.get("total_counts", {})
     for realm in live.get("realms", []):
-        n = len(live.get("by_realm", {}).get(realm, []))
-        print(f"  Live AH {realm:<12}: {n} items")
+        displayed = len(live.get("by_realm", {}).get(realm, []))
+        total = totals.get(realm, displayed)
+        suffix = f" (showing {displayed} with Bankarang data)" if realm == PRIMARY_REALM else f" (showing top {displayed})"
+        print(f"  Live AH {realm:<12}: {total} total{suffix}")
 
     # Embed data — JSON is valid JS; escape </script> to prevent tag injection
     json_str = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
