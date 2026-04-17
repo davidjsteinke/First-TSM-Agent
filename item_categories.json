@@ -1,0 +1,137 @@
+{
+  "0": {
+    "name": "Consumable",
+    "subclasses": [
+      {
+        "id": 0,
+        "name": "Explosives and Devices"
+      },
+      {
+        "id": 1,
+        "name": "Potions"
+      },
+      {
+        "id": 2,
+        "name": "Elixirs"
+      },
+      {
+        "id": 3,
+        "name": "Flasks & Phials"
+      },
+      {
+        "id": 5,
+        "name": "Food & Drink"
+      },
+      {
+        "id": 7,
+        "name": "Bandages"
+      },
+      {
+        "id": 8,
+        "name": "Other"
+      },
+      {
+        "id": 9,
+        "name": "Vantus Runes"
+      },
+      {
+        "id": 10,
+        "name": "Utility Curio"
+      },
+      {
+        "id": 11,
+        "name": "Combat Curio"
+      },
+      {
+        "id": 12,
+        "name": "Relic"
+      },
+      {
+        "id": 13,
+        "name": "RESERVED 13"
+      },
+      {
+        "id": 14,
+        "name": "RESERVED 14"
+      },
+      {
+        "id": 15,
+        "name": "RESERVED 15"
+      }
+    ]
+  },
+  "5": {
+    "name": "Reagent",
+    "subclasses": [
+      {
+        "id": 0,
+        "name": "Reagent"
+      },
+      {
+        "id": 1,
+        "name": "Keystone"
+      },
+      {
+        "id": 2,
+        "name": "Context Token"
+      }
+    ]
+  },
+  "7": {
+    "name": "Tradeskill",
+    "subclasses": [
+      {
+        "id": 1,
+        "name": "Parts"
+      },
+      {
+        "id": 4,
+        "name": "Jewelcrafting"
+      },
+      {
+        "id": 5,
+        "name": "Cloth"
+      },
+      {
+        "id": 6,
+        "name": "Leather"
+      },
+      {
+        "id": 7,
+        "name": "Metal & Stone"
+      },
+      {
+        "id": 8,
+        "name": "Cooking"
+      },
+      {
+        "id": 9,
+        "name": "Herb"
+      },
+      {
+        "id": 10,
+        "name": "Elemental"
+      },
+      {
+        "id": 11,
+        "name": "Other"
+      },
+      {
+        "id": 12,
+        "name": "Enchanting"
+      },
+      {
+        "id": 16,
+        "name": "Inscription"
+      },
+      {
+        "id": 18,
+        "name": "Optional Reagents"
+      },
+      {
+        "id": 19,
+        "name": "Finishing Reagents"
+      }
+    ]
+  }
+}

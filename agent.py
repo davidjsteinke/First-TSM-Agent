@@ -17,6 +17,23 @@ REPORT_FILE = Path("/home/davidjsteinke/report.txt")
 HIGH_MARGIN_THRESHOLD = 20.0  # percent
 PRIMARY_REALM = "Malfurion"
 
+# ---------------------------------------------------------------------------
+# Bankarang filter — flipping analysis is restricted to this character/realm
+#
+# Bankarang on Malfurion is the designated flipper: buys low, resells for profit.
+# Other characters (Manehealer, Edvins, Batarang, etc.) buy reagents for crafting
+# (NPC orders or personal use with Concentration), not for resale. Including their
+# purchases in the flip analysis would inflate "Stop Buying" counts and dilute
+# profit signals with crafting costs that are intentionally unprofitable on resale.
+#
+# Their transactions are still parsed and stored — they're just excluded from the
+# flip-specific analysis below.
+#
+# Future: to add more designated flippers, extend FLIPPER to a set and filter with
+# r.get("player") in FLIPPERS instead of == FLIPPER.
+# ---------------------------------------------------------------------------
+FLIPPER = "Bankarang"
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -441,9 +458,13 @@ def main():
     # --- Summary ---
     section(*render_realm_summary(buckets))
 
-    # --- Malfurion profit analysis (primary) ---
-    malf_buys  = buckets.get((PRIMARY_REALM, "Buys"),  [])
-    malf_sales = buckets.get((PRIMARY_REALM, "Sales"), [])
+    # --- Malfurion profit analysis (primary) — Bankarang only ---
+    # Filter to FLIPPER (Bankarang) transactions only. Other characters buy
+    # reagents for crafting, which would skew the flip profit/loss analysis.
+    malf_buys  = [r for r in buckets.get((PRIMARY_REALM, "Buys"),  [])
+                  if r.get("player") == FLIPPER]
+    malf_sales = [r for r in buckets.get((PRIMARY_REALM, "Sales"), [])
+                  if r.get("player") == FLIPPER]
     malf_stats = build_item_stats(malf_buys, malf_sales)
 
     # Trends: read BEFORE saving so we compare against the previous snapshot

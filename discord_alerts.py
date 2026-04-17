@@ -5,9 +5,17 @@ TSM Discord Reagent Alerts
 Posts a TOP 5 BUYS / TOP 5 SELLS reagent summary to a Discord channel
 every 15 minutes via webhook.
 
-Signal logic uses TSM market value (14-day weighted average) as reference:
-  BUYS:  TSM MV significantly > recent buy price  → worth buying now
-  SELLS: Recent sell price significantly > TSM MV → list now while high
+Signal logic uses a layered pricing reference:
+  PRIMARY:   Live AH minimum price from live_ah.db (most recent snapshot)
+  SECONDARY: TSM market value (14-day weighted average, if populated)
+  TERTIARY:  Bankarang's personal buy/sell averages from tsm_data.json
+
+  BUYS:  live AH min < Bankarang avg sell * 0.80  → worth buying now (≥20% below avg sell)
+  SELLS: live AH min > Bankarang avg buy  * 1.20  → list now while price is high (≥20% above avg buy)
+
+Flipping analysis is restricted to Bankarang on Malfurion — the designated flipper.
+Other characters buy reagents for crafting (not resale) and are excluded so their
+crafting costs don't pollute the flip signals.
 
 Run via systemd timer or manually:
   python3 discord_alerts.py
@@ -24,6 +32,8 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
+import live_ah_db
+
 SCRIPT_DIR  = Path(__file__).parent
 DATA_FILE   = Path.home() / "tsm_data.json"
 NAMES_FILE  = Path.home() / "item_names.json"
@@ -34,6 +44,17 @@ PRIMARY_REALM   = "Malfurion"
 MIDNIGHT_MIN_ID = 236000
 MIN_PROFIT_G    = 2.0   # minimum gold profit to appear in lists
 GAMES_MOUNT     = "/mnt/Games"
+
+# ---------------------------------------------------------------------------
+# Bankarang filter — flipping analysis is Bankarang/Malfurion only.
+# Other characters buy reagents for crafting, not resale.
+# See agent.py for the full explanation.
+# Future: extend to a set if more designated flippers are added.
+# ---------------------------------------------------------------------------
+FLIPPER = "Bankarang"
+
+# Minimum price spread to generate a signal (20% above/below personal average)
+SIGNAL_THRESHOLD_PCT = 20.0
 
 logging.basicConfig(
     level=logging.INFO,
@@ -114,12 +135,7 @@ def load_names() -> dict[str, str]:
     return {}
 
 
-# ---------------------------------------------------------------------------
-# Build buy/sell lists
-# ---------------------------------------------------------------------------
-
 def get_mv_status(has_mv_data: bool) -> str:
-    """Returns 'unmounted', 'no_sync', or 'ok'."""
     if not has_mv_data:
         if not os.path.ismount(GAMES_MOUNT):
             return "unmounted"
@@ -127,42 +143,79 @@ def get_mv_status(has_mv_data: bool) -> str:
     return "ok"
 
 
-def build_reagent_signals(records: list[dict], names: dict,
-                          market_values: dict[str, float]) -> tuple[list[dict], list[dict]]:
-    """
-    Returns (top_buys, top_sells) — each a list of reagent dicts.
+# ---------------------------------------------------------------------------
+# Build buy/sell signals — layered pricing reference
+# ---------------------------------------------------------------------------
 
-    Primary: TSM MV as reference price.
-    Fallback (no TSM MV): uses avg sell price as proxy market value for buy
-    signals, and avg buy price as proxy for sell signals.
+def _build_bankarang_prices(records: list[dict]) -> tuple[dict[int, dict], dict[int, dict]]:
+    """
+    Compute Bankarang's weighted average buy and sell prices per item_id.
+    Returns (buy_acc, sell_acc) where each is {item_id: {gold, qty, txns}}.
+    Only considers Bankarang on Malfurion, Auction source — the designated flipper.
     """
     buys  = [r for r in records if r.get("realm") == PRIMARY_REALM
-             and r.get("type") == "Buys"  and r.get("source") == "Auction"]
+             and r.get("type") == "Buys"  and r.get("source") == "Auction"
+             and r.get("player") == FLIPPER]
     sales = [r for r in records if r.get("realm") == PRIMARY_REALM
-             and r.get("type") == "Sales" and r.get("source") == "Auction"]
+             and r.get("type") == "Sales" and r.get("source") == "Auction"
+             and r.get("player") == FLIPPER]
 
     buy_acc  = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
     sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
 
-    all_ids: set[int] = set()
     for r in buys:
         iid = r["item_id"]
         buy_acc[iid]["gold"] += r["price_gold"]
         buy_acc[iid]["qty"]  += r["quantity"]
         buy_acc[iid]["txns"] += 1
-        all_ids.add(iid)
+
     for r in sales:
         iid = r["item_id"]
         sell_acc[iid]["gold"] += r["price_gold"]
         sell_acc[iid]["qty"]  += r["quantity"]
         sell_acc[iid]["txns"] += 1
-        all_ids.add(iid)
 
-    buy_signals  = []
-    sell_signals = []
+    return dict(buy_acc), dict(sell_acc)
+
+
+def _get_live_ah_price(item_id: int, realm: str = PRIMARY_REALM) -> dict | None:
+    """
+    Return the most recent live AH snapshot for (item_id, realm), or None.
+    Queries live_ah.db (populated by refresh_live_ah.sh every 5 minutes).
+    """
+    try:
+        live_ah_db.init_db()
+        return live_ah_db.get_latest_snapshot(realm, item_id)
+    except Exception:
+        return None
+
+
+def build_reagent_signals(records: list[dict], names: dict,
+                          market_values: dict[str, float]) -> tuple[list[dict], list[dict]]:
+    """
+    Returns (top_buys, top_sells) — each a list of reagent signal dicts.
+
+    Flipping analysis: Bankarang on Malfurion only.
+
+    Pricing hierarchy:
+      1. Live AH minimum price (live_ah.db) — PRIMARY
+      2. TSM market value — SECONDARY (if populated)
+      3. Bankarang's personal avg sell/buy — TERTIARY (current fallback)
+
+    TOP BUYS:  live AH min ≥20% below Bankarang's historical avg sell price
+    TOP SELLS: live AH min ≥20% above Bankarang's historical avg buy price
+    """
+    buy_acc, sell_acc = _build_bankarang_prices(records)
+    all_ids: set[int] = set(buy_acc) | set(sell_acc)
+
+    buy_signals:  list[dict] = []
+    sell_signals: list[dict] = []
+
+    live_ah_checked = 0
+    live_ah_found   = 0
 
     for iid in all_ids:
-        name   = names.get(str(iid), f"Item {iid}")
+        name = names.get(str(iid), f"Item {iid}")
         if not is_midnight_reagent(name, iid):
             continue
 
@@ -170,41 +223,93 @@ def build_reagent_signals(records: list[dict], names: dict,
         s = sell_acc.get(iid)
         avg_buy  = (b["gold"] / b["qty"]) if b and b["qty"] else None
         avg_sell = (s["gold"] / s["qty"]) if s and s["qty"] else None
-        tsm_mv   = market_values.get(str(iid)) or None  # treat 0 as missing
-        txns     = (b["txns"] if b else 0) + (s["txns"] if s else 0)
+        tsm_mv   = market_values.get(str(iid)) or None
+        buy_txns  = b["txns"] if b else 0
+        sell_txns = s["txns"] if s else 0
+        total_txns = buy_txns + sell_txns
 
-        if tsm_mv is not None:
-            if avg_buy is not None:
-                profit = tsm_mv - avg_buy
-                if profit >= MIN_PROFIT_G:
-                    buy_signals.append({
-                        "name": name, "tsm_mv": tsm_mv,
-                        "recent_price": avg_buy, "profit": profit, "txns": txns,
-                        "fallback": False,
-                    })
+        # --- Primary: live AH ---
+        live_ah_checked += 1
+        snap = _get_live_ah_price(iid, PRIMARY_REALM)
+        live_min = snap["min_price"] if snap else None
+        listing_count = snap["listing_count"] if snap else None
+        if live_min is not None:
+            live_ah_found += 1
+
+        # --- Build signals ---
+        ref_price  = live_min or tsm_mv  # PRIMARY or SECONDARY
+        price_source = "live_ah" if live_min is not None else ("tsm_mv" if tsm_mv else "personal")
+
+        if ref_price is not None:
+            threshold = SIGNAL_THRESHOLD_PCT / 100.0
+
+            # BUY signal: live AH min is well below avg sell → buy to resell
             if avg_sell is not None:
-                profit = avg_sell - tsm_mv
-                if profit >= MIN_PROFIT_G:
-                    sell_signals.append({
-                        "name": name, "tsm_mv": tsm_mv,
-                        "recent_price": avg_sell, "profit": profit, "txns": txns,
-                        "fallback": False,
+                profit = avg_sell - ref_price
+                spread_pct = (profit / avg_sell * 100) if avg_sell else 0
+                if profit >= MIN_PROFIT_G and spread_pct >= SIGNAL_THRESHOLD_PCT:
+                    buy_signals.append({
+                        "name": name,
+                        "ref_price": ref_price,
+                        "avg_sell": avg_sell,
+                        "profit": profit,
+                        "spread_pct": spread_pct,
+                        "txns": total_txns,
+                        "listing_count": listing_count,
+                        "price_source": price_source,
+                        "fallback": price_source == "personal",
                     })
+
+            # SELL signal: live AH min is well above avg buy → list now
+            if avg_buy is not None:
+                profit = ref_price - avg_buy
+                spread_pct = (profit / avg_buy * 100) if avg_buy else 0
+                if profit >= MIN_PROFIT_G and spread_pct >= SIGNAL_THRESHOLD_PCT:
+                    sell_signals.append({
+                        "name": name,
+                        "ref_price": ref_price,
+                        "avg_buy": avg_buy,
+                        "profit": profit,
+                        "spread_pct": spread_pct,
+                        "txns": total_txns,
+                        "listing_count": listing_count,
+                        "price_source": price_source,
+                        "fallback": price_source == "personal",
+                    })
+
         else:
-            # Fallback: compare personal buy vs sell prices directly
+            # TERTIARY: no external reference — use personal buy vs sell spread
             if avg_buy is not None and avg_sell is not None:
                 spread = avg_sell - avg_buy
-                if spread >= MIN_PROFIT_G:
+                spread_pct = (spread / avg_buy * 100) if avg_buy else 0
+                if spread >= MIN_PROFIT_G and spread_pct >= SIGNAL_THRESHOLD_PCT:
                     buy_signals.append({
-                        "name": name, "tsm_mv": avg_sell,
-                        "recent_price": avg_buy, "profit": spread, "txns": txns,
+                        "name": name,
+                        "ref_price": avg_sell,
+                        "avg_sell": avg_sell,
+                        "profit": spread,
+                        "spread_pct": spread_pct,
+                        "txns": total_txns,
+                        "listing_count": None,
+                        "price_source": "personal",
                         "fallback": True,
                     })
                     sell_signals.append({
-                        "name": name, "tsm_mv": avg_buy,
-                        "recent_price": avg_sell, "profit": spread, "txns": txns,
+                        "name": name,
+                        "ref_price": avg_buy,
+                        "avg_buy": avg_buy,
+                        "profit": spread,
+                        "spread_pct": spread_pct,
+                        "txns": total_txns,
+                        "listing_count": None,
+                        "price_source": "personal",
                         "fallback": True,
                     })
+
+    logger.info(
+        f"Live AH checked: {live_ah_checked} items, found prices: {live_ah_found} "
+        f"| Buy signals: {len(buy_signals)}  Sell signals: {len(sell_signals)}"
+    )
 
     buy_signals.sort(key=lambda x: x["profit"], reverse=True)
     sell_signals.sort(key=lambda x: x["profit"], reverse=True)
@@ -215,6 +320,13 @@ def build_reagent_signals(records: list[dict], names: dict,
 # Format Discord message
 # ---------------------------------------------------------------------------
 
+_SOURCE_LABEL = {
+    "live_ah":  "Live AH",
+    "tsm_mv":   "TSM MV",
+    "personal": "Est.",
+}
+
+
 def format_message(top_buys: list[dict], top_sells: list[dict],
                    mv_status: str) -> str:
     now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -222,33 +334,32 @@ def format_message(top_buys: list[dict], top_sells: list[dict],
     lines = [
         f"⚔️ **TSM Reagent Report — {PRIMARY_REALM}**",
         f"🕐 Updated: {now}",
+        f"📊 *Flipping analysis: Bankarang only*",
         "",
     ]
 
     if mv_status == "unmounted":
         lines += [
             "⚠️ *TSM market values not available — drive may be unmounted.*",
-            "*Showing personal transaction history only.*",
             "",
         ]
     elif mv_status == "no_sync":
         lines += [
-            "⏳ *TSM market values not yet available — waiting for TSM Desktop App sync.*",
-            "*Signals below are based on personal buy/sell spread.*",
+            "⏳ *TSM market values not yet synced — using live AH / personal prices.*",
             "",
         ]
 
     if top_buys:
-        fallback = top_buys[0].get("fallback", False)
-        ref_label = "Est. sell" if fallback else "Market"
-        lines.append("📈 **TOP 5 BUYS** *(buy now, sell at market value)*")
+        lines.append("📈 **TOP 5 BUYS** *(buy now — AH price below your avg sell)*")
         for i, item in enumerate(top_buys, 1):
+            src = _SOURCE_LABEL.get(item["price_source"], "Ref")
+            listings = f" | {item['listing_count']} listings" if item.get("listing_count") else ""
             lines.append(
                 f"{i}. **{item['name']}** — "
-                f"Buy @ {fmt_g(item['recent_price'])} | "
-                f"{ref_label}: {fmt_g(item['tsm_mv'])} | "
+                f"AH: {fmt_g(item['ref_price'])} ({src}) | "
+                f"Your sell avg: {fmt_g(item.get('avg_sell'))} | "
                 f"**+{fmt_g(item['profit'])} profit** "
-                f"({item['txns']} txns)"
+                f"({item['txns']} txns{listings})"
             )
     else:
         lines.append("📈 **TOP 5 BUYS** — *No strong buy signals right now*")
@@ -256,16 +367,16 @@ def format_message(top_buys: list[dict], top_sells: list[dict],
     lines.append("")
 
     if top_sells:
-        fallback = top_sells[0].get("fallback", False)
-        ref_label = "Est. buy" if fallback else "Market"
-        lines.append("📉 **TOP 5 SELLS** *(list these now — above market)*")
+        lines.append("📉 **TOP 5 SELLS** *(list these now — AH price above your avg buy)*")
         for i, item in enumerate(top_sells, 1):
+            src = _SOURCE_LABEL.get(item["price_source"], "Ref")
+            listings = f" | {item['listing_count']} listings" if item.get("listing_count") else ""
             lines.append(
                 f"{i}. **{item['name']}** — "
-                f"Sell @ {fmt_g(item['recent_price'])} | "
-                f"{ref_label}: {fmt_g(item['tsm_mv'])} | "
+                f"AH: {fmt_g(item['ref_price'])} ({src}) | "
+                f"Your buy avg: {fmt_g(item.get('avg_buy'))} | "
                 f"**+{fmt_g(item['profit'])} premium** "
-                f"({item['txns']} txns)"
+                f"({item['txns']} txns{listings})"
             )
     else:
         lines.append("📉 **TOP 5 SELLS** — *No items currently above market*")
