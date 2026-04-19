@@ -24,9 +24,10 @@ from pathlib import Path
 # Config
 # ---------------------------------------------------------------------------
 
+_PROJECT_DIR     = Path(__file__).parent
 ENV_FILE         = Path.home() / ".env"
-CACHE_FILE       = Path.home() / "item_names.json"
-ITEM_CLASS_FILE  = Path.home() / "item_class_ids.json"
+CACHE_FILE       = _PROJECT_DIR / "item_names.json"
+ITEM_CLASS_FILE  = _PROJECT_DIR / "item_class_ids.json"
 
 # Item class/subclass combos to exclude from flipping analysis.
 # class 17        = Battle Pets

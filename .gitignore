@@ -1,5 +1,6 @@
 .env
 item_names.json
+item_class_ids.json
 tsm_data.json
 tsm_history.db
 logs/
