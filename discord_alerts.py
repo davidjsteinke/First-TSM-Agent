@@ -34,6 +34,7 @@ from dotenv import load_dotenv
 
 import blizzard_api
 import live_ah_db
+import quality_tiers
 
 SCRIPT_DIR  = Path(__file__).parent
 DATA_FILE   = Path.home() / "tsm_data.json"
@@ -165,28 +166,29 @@ def _build_bankarang_prices(records: list[dict]) -> tuple[dict[int, dict], dict[
     sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
 
     for r in buys:
-        iid = r["item_id"]
-        buy_acc[iid]["gold"] += r["price_gold"]
-        buy_acc[iid]["qty"]  += r["quantity"]
-        buy_acc[iid]["txns"] += 1
+        key = (r["item_id"], r.get("quality_tier", ""))
+        buy_acc[key]["gold"] += r["price_gold"]
+        buy_acc[key]["qty"]  += r["quantity"]
+        buy_acc[key]["txns"] += 1
 
     for r in sales:
-        iid = r["item_id"]
-        sell_acc[iid]["gold"] += r["price_gold"]
-        sell_acc[iid]["qty"]  += r["quantity"]
-        sell_acc[iid]["txns"] += 1
+        key = (r["item_id"], r.get("quality_tier", ""))
+        sell_acc[key]["gold"] += r["price_gold"]
+        sell_acc[key]["qty"]  += r["quantity"]
+        sell_acc[key]["txns"] += 1
 
     return dict(buy_acc), dict(sell_acc)
 
 
-def _get_live_ah_price(item_id: int, realm: str = PRIMARY_REALM) -> dict | None:
+def _get_live_ah_price(item_id: int, realm: str = PRIMARY_REALM,
+                       qt: str = "") -> dict | None:
     """
-    Return the most recent live AH snapshot for (item_id, realm), or None.
+    Return the most recent live AH snapshot for (item_id, quality_tier, realm).
     Queries live_ah.db (populated by refresh_live_ah.sh every 5 minutes).
     """
     try:
         live_ah_db.init_db()
-        return live_ah_db.get_latest_snapshot(realm, item_id)
+        return live_ah_db.get_latest_snapshot(realm, item_id, qt)
     except Exception:
         return None
 
@@ -207,7 +209,7 @@ def build_reagent_signals(records: list[dict], names: dict,
     TOP SELLS: live AH min ≥20% above Bankarang's historical avg buy price
     """
     buy_acc, sell_acc = _build_bankarang_prices(records)
-    all_ids: set[int] = set(buy_acc) | set(sell_acc)
+    all_keys: set[tuple] = set(buy_acc) | set(sell_acc)
 
     buy_signals:  list[dict] = []
     sell_signals: list[dict] = []
@@ -215,15 +217,16 @@ def build_reagent_signals(records: list[dict], names: dict,
     live_ah_checked = 0
     live_ah_found   = 0
 
-    for iid in all_ids:
+    for key in all_keys:
+        iid, qt = key
         name = names.get(str(iid), f"Unknown Item ({iid})")
         if not is_midnight_reagent(name, iid):
             continue
         if blizzard_api.is_excluded_item(iid):
             continue
 
-        b = buy_acc.get(iid)
-        s = sell_acc.get(iid)
+        b = buy_acc.get(key)
+        s = sell_acc.get(key)
         avg_buy  = (b["gold"] / b["qty"]) if b and b["qty"] else None
         avg_sell = (s["gold"] / s["qty"]) if s and s["qty"] else None
         tsm_mv   = market_values.get(str(iid)) or None
@@ -233,26 +236,26 @@ def build_reagent_signals(records: list[dict], names: dict,
 
         # --- Primary: live AH ---
         live_ah_checked += 1
-        snap = _get_live_ah_price(iid, PRIMARY_REALM)
+        snap = _get_live_ah_price(iid, PRIMARY_REALM, qt)
         live_min = snap["min_price"] if snap else None
         listing_count = snap["listing_count"] if snap else None
         if live_min is not None:
             live_ah_found += 1
 
         # --- Build signals ---
-        ref_price  = live_min or tsm_mv  # PRIMARY or SECONDARY
+        ref_price    = live_min or tsm_mv  # PRIMARY or SECONDARY
         price_source = "live_ah" if live_min is not None else ("tsm_mv" if tsm_mv else "personal")
+        display_name = f"{name} {quality_tiers.fmt_quality(qt)}" if qt else name
 
         if ref_price is not None:
-            threshold = SIGNAL_THRESHOLD_PCT / 100.0
-
             # BUY signal: live AH min is well below avg sell → buy to resell
             if avg_sell is not None:
                 profit = avg_sell - ref_price
                 spread_pct = (profit / avg_sell * 100) if avg_sell else 0
                 if profit >= MIN_PROFIT_G and spread_pct >= SIGNAL_THRESHOLD_PCT:
                     buy_signals.append({
-                        "name": name,
+                        "name": display_name,
+                        "quality_tier": qt,
                         "ref_price": ref_price,
                         "avg_sell": avg_sell,
                         "profit": profit,
@@ -269,7 +272,8 @@ def build_reagent_signals(records: list[dict], names: dict,
                 spread_pct = (profit / avg_buy * 100) if avg_buy else 0
                 if profit >= MIN_PROFIT_G and spread_pct >= SIGNAL_THRESHOLD_PCT:
                     sell_signals.append({
-                        "name": name,
+                        "name": display_name,
+                        "quality_tier": qt,
                         "ref_price": ref_price,
                         "avg_buy": avg_buy,
                         "profit": profit,
@@ -287,7 +291,8 @@ def build_reagent_signals(records: list[dict], names: dict,
                 spread_pct = (spread / avg_buy * 100) if avg_buy else 0
                 if spread >= MIN_PROFIT_G and spread_pct >= SIGNAL_THRESHOLD_PCT:
                     buy_signals.append({
-                        "name": name,
+                        "name": display_name,
+                        "quality_tier": qt,
                         "ref_price": avg_sell,
                         "avg_sell": avg_sell,
                         "profit": spread,
@@ -298,7 +303,8 @@ def build_reagent_signals(records: list[dict], names: dict,
                         "fallback": True,
                     })
                     sell_signals.append({
-                        "name": name,
+                        "name": display_name,
+                        "quality_tier": qt,
                         "ref_price": avg_buy,
                         "avg_buy": avg_buy,
                         "profit": spread,

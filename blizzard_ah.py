@@ -36,6 +36,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from blizzard_api import _get_token
+import quality_tiers
 
 # ---------------------------------------------------------------------------
 # Config
@@ -264,6 +265,8 @@ def _normalize_commodity(auction: dict, realm: str) -> dict | None:
     """
     Normalize a commodity auction entry to a standard format.
     Commodity auctions use unit_price (per-unit, in copper).
+    Commodity items have quality baked into separate item IDs, so we derive
+    quality_tier from the item_id tier map rather than bonus lists.
     """
     iid = auction.get("item", {}).get("id")
     unit_price_copper = auction.get("unit_price")
@@ -274,6 +277,7 @@ def _normalize_commodity(auction: dict, realm: str) -> dict | None:
 
     return {
         "item_id":          iid,
+        "quality_tier":     quality_tiers.get_item_quality(iid),
         "quantity":         qty,
         "buyout_per_unit":  round(unit_price_copper / 10_000, 4),  # copper → gold
         "time_left":        "COMMODITY",
@@ -286,8 +290,11 @@ def _normalize_regular(auction: dict, realm: str) -> dict | None:
     """
     Normalize a regular (non-commodity) auction entry to a standard format.
     Regular auctions use buyout (total stack price, in copper).
+    Per-realm auctions carry bonus_list which encodes crafted quality tier
+    (12498=T1 … 12502=T5 for gear/profession tools).
     """
-    iid = auction.get("item", {}).get("id")
+    item_dict = auction.get("item", {})
+    iid = item_dict.get("id")
     qty = auction.get("quantity", 1)
     buyout = auction.get("buyout") or auction.get("unit_price")  # unit_price fallback
     time_left = auction.get("time_left", "UNKNOWN")
@@ -295,8 +302,13 @@ def _normalize_regular(auction: dict, realm: str) -> dict | None:
     if not iid or buyout is None:
         return None
 
+    # bonus_list key name varies by API version
+    bonus_list: list[int] = item_dict.get("bonus_list") or item_dict.get("bonus_lists") or []
+    qt = quality_tiers.get_item_quality(iid, bonus_list)
+
     return {
         "item_id":          iid,
+        "quality_tier":     qt,
         "quantity":         qty,
         "buyout_per_unit":  round(buyout / qty / 10_000, 4),  # copper → gold, per unit
         "time_left":        time_left,
@@ -420,7 +432,7 @@ def fetch_all_realms() -> dict[str, list[dict]]:
     class_ids  = get_filter_class_ids()
 
     # Load item name cache for fallback filtering of per-realm gear
-    names_file = Path.home() / "item_names.json"
+    names_file = SCRIPT_DIR / "item_names.json"
     names: dict[str, str] = {}
     if names_file.exists():
         try:

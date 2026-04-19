@@ -1,6 +1,8 @@
 .env
 item_names.json
 item_class_ids.json
+quality_tier_map.json
+live_ah.db
 tsm_data.json
 tsm_history.db
 logs/

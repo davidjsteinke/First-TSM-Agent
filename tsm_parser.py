@@ -11,6 +11,8 @@ import io
 from datetime import datetime, timezone
 from pathlib import Path
 
+import quality_tiers
+
 LUA_PATH = Path(
     "/mnt/Games/Blizzard/World of Warcraft"
     "/_retail_/WTF/Account/QUESOMAN/SavedVariables/TradeSkillMaster.lua"
@@ -74,12 +76,16 @@ def parse_csv_block(realm: str, entry_type: str, raw_csv: str) -> list[dict]:
     for row in reader:
         try:
             item_info = parse_item_string(row["itemString"].strip())
+            qt = quality_tiers.tier_from_tsm_bonus(item_info["bonus_ids"])
+            if not qt:
+                qt = quality_tiers.get_item_quality(item_info["item_id"])
             record = {
                 "realm": realm,
                 "type": _TYPE_NAMES.get(entry_type, entry_type),
                 "item_id": item_info["item_id"],
                 "item_string": item_info["item_string"],
                 "bonus_ids": item_info["bonus_ids"],
+                "quality_tier": qt,
                 "stack_size": int(row["stackSize"]),
                 "quantity": int(row["quantity"]),
                 "player": row["player"].strip(),

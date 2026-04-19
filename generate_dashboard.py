@@ -16,11 +16,12 @@ from pathlib import Path
 
 import blizzard_api
 import live_ah_db
+import quality_tiers
 
 # Resolve paths relative to this file so the script works from any CWD
 SCRIPT_DIR      = Path(__file__).parent
 DATA_FILE       = Path.home() / "tsm_data.json"
-NAMES_FILE      = Path.home() / "item_names.json"
+NAMES_FILE      = SCRIPT_DIR / "item_names.json"
 DASHBOARD       = SCRIPT_DIR / "dashboard.html"
 PUBLIC_DASH     = SCRIPT_DIR / "dashboard_public.html"
 DOCS_DIR        = SCRIPT_DIR / "docs"
@@ -103,24 +104,28 @@ def build_profit_stats(records: list[dict]) -> list[dict]:
     sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
 
     for r in buys:
-        d = buy_acc[r["item_id"]]
+        key = (r["item_id"], r.get("quality_tier", ""))
+        d = buy_acc[key]
         d["gold"] += r["price_gold"]; d["qty"] += r["quantity"]; d["txns"] += 1
 
     for r in sales:
-        d = sell_acc[r["item_id"]]
+        key = (r["item_id"], r.get("quality_tier", ""))
+        d = sell_acc[key]
         d["gold"] += r["price_gold"]; d["qty"] += r["quantity"]; d["txns"] += 1
 
     out = []
-    for iid in set(buy_acc) & set(sell_acc):
+    for key in set(buy_acc) & set(sell_acc):
+        iid, qt = key
         if blizzard_api.is_excluded_item(iid):
             continue
-        b, s = buy_acc[iid], sell_acc[iid]
+        b, s = buy_acc[key], sell_acc[key]
         avg_buy  = b["gold"] / b["qty"]
         avg_sell = s["gold"] / s["qty"]
         profit   = avg_sell - avg_buy
         margin   = (profit / avg_buy * 100) if avg_buy else 0.0
         out.append({
-            "item_id": iid, "avg_buy": avg_buy, "avg_sell": avg_sell,
+            "item_id": iid, "quality_tier": qt,
+            "avg_buy": avg_buy, "avg_sell": avg_sell,
             "profit_per_item": profit, "margin_pct": margin,
             "buy_txns": b["txns"], "sell_txns": s["txns"],
             "total_volume": b["txns"] + s["txns"],
@@ -143,34 +148,32 @@ def build_live_arbitrage(names: dict) -> list[dict]:
     except Exception:
         return []
 
-    realm_data: dict[str, dict[int, dict]] = {}
+    realm_data: dict[str, dict[tuple, dict]] = {}
     for realm in ALL_REALMS:
         try:
             snaps = live_ah_db.get_all_latest_snapshots(realm)
-            realm_data[realm] = {s["item_id"]: s for s in snaps}
+            realm_data[realm] = {(s["item_id"], s["quality_tier"]): s for s in snaps}
         except Exception:
             realm_data[realm] = {}
 
-    # Collect item_ids present in at least 2 realms
-    item_realms: dict[int, list[str]] = {}
+    # Collect (item_id, quality_tier) keys present in at least 2 realms
+    item_realms: dict[tuple, list[str]] = {}
     for realm, items in realm_data.items():
-        for iid in items:
-            item_realms.setdefault(iid, []).append(realm)
+        for key in items:
+            item_realms.setdefault(key, []).append(realm)
 
     opps = []
-    for iid, realms_present in item_realms.items():
+    for (iid, qt), realms_present in item_realms.items():
         if len(realms_present) < 2:
             continue
 
-        # Focus on Midnight expansion items — these have reliable price data
-        # and match the rest of the dashboard's reagent scope.
         if iid < MIDNIGHT_MIN_ID:
             continue
 
         if blizzard_api.is_excluded_item(iid):
             continue
 
-        prices = {r: realm_data[r][iid]["min_price"] for r in realms_present}
+        prices = {r: realm_data[r][(iid, qt)]["min_price"] for r in realms_present}
         buy_realm  = min(prices, key=prices.__getitem__)
         sell_realm = max(prices, key=prices.__getitem__)
 
@@ -188,8 +191,8 @@ def build_live_arbitrage(names: dict) -> list[dict]:
         # Require ≥5 listings on both sides to confirm active markets (not parked prices).
         if sell_price >= 50_000 or buy_price >= 50_000:
             continue
-        buy_snap  = realm_data[buy_realm][iid]
-        sell_snap = realm_data[sell_realm][iid]
+        buy_snap  = realm_data[buy_realm][(iid, qt)]
+        sell_snap = realm_data[sell_realm][(iid, qt)]
         if buy_snap["listing_count"] < 5 or sell_snap["listing_count"] < 5:
             continue
 
@@ -204,6 +207,7 @@ def build_live_arbitrage(names: dict) -> list[dict]:
 
         opps.append({
             "item_id":        iid,
+            "quality_tier":   qt,
             "item_name":      name,
             "category":       _item_category(iid, name),
             "buy_realm":      buy_realm,
@@ -224,32 +228,35 @@ def build_repricing(records: list[dict]) -> list[dict]:
     ce: dict = defaultdict(lambda: {"cancels": 0, "expirations": 0, "cq": 0, "eq": 0})
     for r in records:
         if r.get("realm") != PRIMARY_REALM: continue
+        key = (r["item_id"], r.get("quality_tier", ""))
         if r.get("type") == "Cancelled":
-            ce[r["item_id"]]["cancels"]    += 1
-            ce[r["item_id"]]["cq"]         += r.get("quantity", 0)
+            ce[key]["cancels"]    += 1
+            ce[key]["cq"]         += r.get("quantity", 0)
         elif r.get("type") == "Expired":
-            ce[r["item_id"]]["expirations"] += 1
-            ce[r["item_id"]]["eq"]          += r.get("quantity", 0)
+            ce[key]["expirations"] += 1
+            ce[key]["eq"]          += r.get("quantity", 0)
 
-    sells  = defaultdict(int)
+    sells   = defaultdict(int)
     bprices = defaultdict(list)
     for r in records:
         if r.get("realm") != PRIMARY_REALM: continue
+        key = (r["item_id"], r.get("quality_tier", ""))
         if r.get("type") == "Sales"  and r.get("source") == "Auction":
-            sells[r["item_id"]] += 1
+            sells[key] += 1
         if r.get("type") == "Buys"   and r.get("source") == "Auction":
             qty  = r.get("quantity") or 1
-            bprices[r["item_id"]].append(r["price_gold"] / qty)
+            bprices[key].append(r["price_gold"] / qty)
 
     out = []
-    for iid, d in ce.items():
-        failures = d["cancels"] + d["expirations"]
-        successes = sells.get(iid, 0)
+    for key, d in ce.items():
+        iid, qt = key
+        failures  = d["cancels"] + d["expirations"]
+        successes = sells.get(key, 0)
         total     = failures + successes
         fail_rate = (failures / total * 100) if total else 100.0
-        bp        = bprices.get(iid)
+        bp        = bprices.get(key)
         out.append({
-            "item_id": iid,
+            "item_id": iid, "quality_tier": qt,
             "cancels": d["cancels"], "expirations": d["expirations"],
             "failed_qty": d["cq"] + d["eq"],
             "sell_successes": successes, "total_listings": total,
@@ -316,45 +323,44 @@ def build_reagents(records: list[dict], names: dict,
     buy_acc  = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
     sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
 
-    all_item_ids: set[int] = set()
+    all_keys: set[tuple] = set()
     for r in buys:
-        iid = r["item_id"]
-        buy_acc[iid]["gold"] += r["price_gold"]
-        buy_acc[iid]["qty"]  += r["quantity"]
-        buy_acc[iid]["txns"] += 1
-        all_item_ids.add(iid)
+        key = (r["item_id"], r.get("quality_tier", ""))
+        buy_acc[key]["gold"] += r["price_gold"]
+        buy_acc[key]["qty"]  += r["quantity"]
+        buy_acc[key]["txns"] += 1
+        all_keys.add(key)
     for r in sales:
-        iid = r["item_id"]
-        sell_acc[iid]["gold"] += r["price_gold"]
-        sell_acc[iid]["qty"]  += r["quantity"]
-        sell_acc[iid]["txns"] += 1
-        all_item_ids.add(iid)
+        key = (r["item_id"], r.get("quality_tier", ""))
+        sell_acc[key]["gold"] += r["price_gold"]
+        sell_acc[key]["qty"]  += r["quantity"]
+        sell_acc[key]["txns"] += 1
+        all_keys.add(key)
 
     out = []
-    for iid in all_item_ids:
+    for key in all_keys:
+        iid, qt = key
         name = names.get(str(iid), f"Unknown Item ({iid})")
         if not is_midnight_reagent(name, iid):
             continue
 
-        b = buy_acc.get(iid)
-        s = sell_acc.get(iid)
+        b = buy_acc.get(key)
+        s = sell_acc.get(key)
         avg_buy  = (b["gold"] / b["qty"]) if b and b["qty"] else None
         avg_sell = (s["gold"] / s["qty"]) if s and s["qty"] else None
         txn_count = (b["txns"] if b else 0) + (s["txns"] if s else 0)
 
-        live_snap   = (live_ah_dict or {}).get(iid)
+        live_snap   = (live_ah_dict or {}).get(key) or (live_ah_dict or {}).get((iid, ""))
         live_ah_min = live_snap["min_price"] if live_snap else None
         live_ah_avg = live_snap["avg_price"] if live_snap else None
 
-        # Profit potential: buy at personal avg → sell at current live AH min
-        # Falls back to TSM MV if live AH not available
         ref_price = live_ah_min or market_values.get(str(iid))
         profit_potential = (ref_price - avg_buy) if (ref_price and avg_buy) else None
-
         net_if_sold_at_min = round(live_ah_min * 0.95 - avg_buy, 4) if (live_ah_min is not None and avg_buy is not None) else None
 
         out.append({
             "item_id":            iid,
+            "quality_tier":       qt,
             "item_name":          name,
             "live_ah_min":        live_ah_min,
             "buy_at":             live_ah_min,
@@ -376,9 +382,10 @@ def build_reagents(records: list[dict], names: dict,
 # Live AH data (from live_ah.db)
 # ---------------------------------------------------------------------------
 
-def _bankarang_prices(records: list[dict]) -> dict[int, dict]:
+def _bankarang_prices(records: list[dict]) -> dict[tuple, dict]:
     """
-    Return {item_id: {avg_buy, avg_sell, buy_txns, sell_txns}} for Bankarang/Malfurion.
+    Return {(item_id, quality_tier): {avg_buy, avg_sell, buy_txns, sell_txns}}
+    for Bankarang/Malfurion.
     """
     buy_acc  = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
     sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
@@ -387,21 +394,21 @@ def _bankarang_prices(records: list[dict]) -> dict[int, dict]:
         if r.get("realm") != PRIMARY_REALM: continue
         if r.get("source") != "Auction":    continue
         if r.get("player") != FLIPPER:      continue
-        iid = r["item_id"]
+        key = (r["item_id"], r.get("quality_tier", ""))
         if r.get("type") == "Buys":
-            buy_acc[iid]["gold"] += r["price_gold"]
-            buy_acc[iid]["qty"]  += r["quantity"]
-            buy_acc[iid]["txns"] += 1
+            buy_acc[key]["gold"] += r["price_gold"]
+            buy_acc[key]["qty"]  += r["quantity"]
+            buy_acc[key]["txns"] += 1
         elif r.get("type") == "Sales":
-            sell_acc[iid]["gold"] += r["price_gold"]
-            sell_acc[iid]["qty"]  += r["quantity"]
-            sell_acc[iid]["txns"] += 1
+            sell_acc[key]["gold"] += r["price_gold"]
+            sell_acc[key]["qty"]  += r["quantity"]
+            sell_acc[key]["txns"] += 1
 
-    out: dict[int, dict] = {}
-    for iid in set(buy_acc) | set(sell_acc):
-        b = buy_acc.get(iid)
-        s = sell_acc.get(iid)
-        out[iid] = {
+    out: dict[tuple, dict] = {}
+    for key in set(buy_acc) | set(sell_acc):
+        b = buy_acc.get(key)
+        s = sell_acc.get(key)
+        out[key] = {
             "avg_buy":   (b["gold"] / b["qty"]) if b and b["qty"] else None,
             "avg_sell":  (s["gold"] / s["qty"]) if s and s["qty"] else None,
             "buy_txns":  b["txns"] if b else 0,
@@ -469,7 +476,8 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
 
         for snap in snapshots:
             iid  = snap["item_id"]
-            bp   = ban_prices.get(iid, {})
+            qt   = snap.get("quality_tier", "")
+            bp   = ban_prices.get((iid, qt)) or ban_prices.get((iid, ""), {})
             avg_buy  = bp.get("avg_buy")
             avg_sell = bp.get("avg_sell")
 
@@ -500,6 +508,7 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
 
             rows.append({
                 "item_id":              iid,
+                "quality_tier":         qt,
                 "item_name":            name,
                 "category":             _item_category(iid, name),
                 "live_ah_min":          round(live_min, 4),
@@ -565,6 +574,7 @@ def _prefetch_dashboard_names(existing: dict) -> None:
 
         if deduped:
             blizzard_api.prefetch_item_names(deduped, max_new=200, delay=0.05)
+            quality_tiers.rebuild_tier_map()
 
         # Backfill class info for items already named but lacking class data.
         # Covers items fetched before class tracking was added (200/run cap).
@@ -598,7 +608,9 @@ def build_data() -> dict:
     try:
         live_ah_db.init_db()
         _malf_snaps = live_ah_db.get_all_latest_snapshots(PRIMARY_REALM)
-        live_malfurion_dict: dict[int, dict] = {s["item_id"]: s for s in _malf_snaps}
+        live_malfurion_dict: dict[tuple, dict] = {
+            (s["item_id"], s.get("quality_tier", "")): s for s in _malf_snaps
+        }
     except Exception:
         live_malfurion_dict = {}
 
@@ -609,7 +621,8 @@ def build_data() -> dict:
     reagent_rows      = build_reagents(records, names, market_values, live_malfurion_dict)
     live_ah           = build_live_ah_data(records, names)
 
-    enrich = lambda s: {**s, "item_name": item_name(s["item_id"], names)}
+    enrich = lambda s: {**s, "item_name": item_name(s["item_id"], names),
+                        "quality_tier": s.get("quality_tier", "")}
 
     profit_rows      = [enrich(s) for s in profit_stats]
     arb_rows         = arbitrage   # already contains item_name from build_live_arbitrage
@@ -792,6 +805,14 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
 .card[data-panel] { cursor: pointer; transition: background .15s, border-color .15s; }
 .card[data-panel]:hover { background: #1e2530; border-color: var(--muted); }
 
+/* ---- Quality tier badges ---- */
+.qt { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
+.qt-T1 { background: rgba(139,148,158,.15); color: var(--muted); border: 1px solid rgba(139,148,158,.3); }
+.qt-T2 { background: rgba(88,166,255,.12); color: #58a6ff; border: 1px solid rgba(88,166,255,.3); }
+.qt-T3 { background: rgba(63,185,80,.12); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+.qt-T4 { background: rgba(188,140,255,.12); color: #bc8cff; border: 1px solid rgba(188,140,255,.3); }
+.qt-T5 { background: rgba(246,201,14,.12); color: var(--gold); border: 1px solid rgba(246,201,14,.3); }
+
 /* ---- Footer ---- */
 .footer { text-align: center; padding: 18px; color: var(--muted); font-size: .75rem; border-top: 1px solid var(--border); }
 </style>
@@ -837,6 +858,15 @@ const DATA = __DATA_JSON__;
 const g = id => document.getElementById(id);
 const fmt_g  = v => v == null ? '—' : (Math.abs(v) < 10 ? v.toFixed(2) : Math.round(v).toLocaleString()) + 'g';
 const fmt_pct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+
+// ---- Quality badge helper ----
+function qtBadge(qt) {
+  if (!qt) return '';
+  return `<span class="qt qt-${qt}">${qt}</span>`;
+}
+function itemCell(row) {
+  return (row.item_name || '—') + qtBadge(row.quality_tier || '');
+}
 
 function rowClass(val, type) {
   if (type === 'margin') {
@@ -912,6 +942,7 @@ function makeTable(containerId, columns, rows, colorKey, colorType) {
         if (c.format === 'src')    { display = raw ? `<span class="muted">${raw}</span>` : ''; }
         if (c.format === 'fail')   { display = fmt_pct(raw);  cc = cellClass(raw, 'fail'); }
         if (c.format === 'opt_g')  { display = raw != null ? fmt_g(raw) : '<span class="muted">—</span>'; }
+        if (c.format === 'item')   { display = itemCell(row); }
         return `<td${cc ? ` class="${cc}"` : ''}>${display}</td>`;
       }).join('');
       return `<tr class="${rc}">${cells}</tr>`;
@@ -998,7 +1029,7 @@ function initTabs() {
 // ---- Profit table ----
 function initProfit() {
   const cols = [
-    { key: 'item_name',       label: 'Item',          num: false },
+    { key: 'item_name',       label: 'Item',          num: false, format: 'item' },
     { key: 'avg_buy',         label: 'Avg Buy',       num: true,  format: 'gold' },
     { key: 'avg_sell',        label: 'Avg Sell',      num: true,  format: 'gold' },
     { key: 'profit_per_item', label: 'Profit / Item', num: true,  format: 'gold' },
@@ -1024,7 +1055,7 @@ function initArbitrage() {
   </div>`;
 
   const cols = [
-    { key: 'item_name',      label: 'Item',                num: false },
+    { key: 'item_name',      label: 'Item',                num: false, format: 'item' },
     { key: 'category',       label: 'Category',            num: false },
     { key: 'buy_realm',      label: 'Buy Realm',           num: false, format: 'realm' },
     { key: 'buy_at',         label: 'Buy At',              num: true,  format: 'gold' },
@@ -1065,6 +1096,7 @@ function initArbitrage() {
       const cells = cols.map(c => {
         const raw = row[c.key];
         let display = raw, cc = '';
+        if (c.format === 'item')  { display = itemCell(row); }
         if (c.format === 'gold')  { display = fmt_g(raw); cc = raw > 0 ? 'pos' : raw < 0 ? 'neg' : ''; }
         if (c.format === 'pct')   { display = fmt_pct(raw); cc = raw >= 50 ? 'hi-pct' : raw >= 20 ? 'pos' : 'muted'; }
         if (c.format === 'int')   { display = raw != null ? raw.toLocaleString() : '—'; }
@@ -1096,7 +1128,7 @@ function initArbitrage() {
 // ---- Repricing table ----
 function initRepricing() {
   const cols = [
-    { key: 'item_name',       label: 'Item',          num: false },
+    { key: 'item_name',       label: 'Item',          num: false, format: 'item' },
     { key: 'cancels',         label: 'Cancels',       num: true,  format: 'int' },
     { key: 'expirations',     label: 'Expired',       num: true,  format: 'int' },
     { key: 'failed_qty',      label: 'Failed Qty',    num: true,  format: 'int' },
@@ -1110,7 +1142,7 @@ function initRepricing() {
 // ---- Stop Buying table ----
 function initStopBuying() {
   const cols = [
-    { key: 'item_name',       label: 'Item',          num: false },
+    { key: 'item_name',       label: 'Item',          num: false, format: 'item' },
     { key: 'avg_buy',         label: 'Avg Buy',       num: true,  format: 'gold' },
     { key: 'avg_sell',        label: 'Avg Sell',      num: true,  format: 'gold' },
     { key: 'loss_per_item',   label: 'Loss / Item',   num: true,  format: 'loss_g' },
@@ -1144,6 +1176,7 @@ function initStopBuying() {
     const tbody = sorted.map(row => {
       const cells = cols.map(c => {
         const raw = row[c.key];
+        if (c.format === 'item')    return `<td>${itemCell(row)}</td>`;
         if (c.format === 'loss_g')  return `<td class="loss">${raw != null ? fmt_g(raw) : '—'}</td>`;
         if (c.format === 'loss_pct') return `<td class="loss">-${raw != null ? raw.toFixed(1)+'%' : '—'}</td>`;
         if (c.format === 'gold')    return `<td>${raw != null ? fmt_g(raw) : '—'}</td>`;
@@ -1185,7 +1218,7 @@ function initReagents() {
   }
 
   const cols = [
-    { key: 'item_name',          label: 'Item',               num: false },
+    { key: 'item_name',          label: 'Item',               num: false, format: 'item' },
     { key: 'live_ah_min',        label: 'Live AH Min',        num: true,  format: 'gold_live' },
     { key: 'live_ah_avg',        label: 'Live AH Avg',        num: true,  format: 'gold_opt' },
     { key: 'avg_buy',            label: 'My Avg Buy',         num: true,  format: 'gold_opt' },
@@ -1229,6 +1262,7 @@ function initReagents() {
       const rc = rowBg(row);
       const cells = cols.map(c => {
         const v = row[c.key];
+        if (c.format === 'item')      return `<td>${itemCell(row)}</td>`;
         if (c.format === 'gold_live') return `<td>${v != null ? fmt_g(v) : '<span class="muted">No AH data</span>'}</td>`;
         if (c.format === 'gold_opt')  return `<td>${v != null ? fmt_g(v) : '<span class="muted">—</span>'}</td>`;
         if (c.format === 'profit_g') {
@@ -1294,7 +1328,7 @@ function initLiveAH() {
   };
 
   const cols = [
-    { key: 'item_name',          label: 'Item',               num: false },
+    { key: 'item_name',          label: 'Item',               num: false, fmt: 'item' },
     { key: 'category',           label: 'Category',           num: false },
     { key: 'live_ah_min',        label: 'Live Min',           num: true,  fmt: 'gold' },
     { key: 'live_ah_avg',        label: 'Live Avg',           num: true,  fmt: 'gold' },
@@ -1349,6 +1383,7 @@ function initLiveAH() {
       const cells = cols.map(c => {
         const v = row[c.key];
         switch (c.fmt) {
+          case 'item':     return `<td>${itemCell(row)}</td>`;
           case 'gold':     return `<td>${fmt_g(v)}</td>`;
           case 'gold_opt': return `<td>${v != null ? fmt_g(v) : '<span class="muted">—</span>'}</td>`;
           case 'int':      return `<td>${v != null ? v.toLocaleString() : '—'}</td>`;
@@ -1468,7 +1503,7 @@ function initTopOpportunities() {
       const rank = i + 1;
       return `<tr class="${rowOppClass(rank)}">
         <td class="muted" style="text-align:center">${rank}</td>
-        <td>${r.item_name}</td>
+        <td>${itemCell(r)}</td>
         <td>${fmt_g(r.live_ah_min)}</td>
         <td>${fmt_g(r.bankarang_avg_sell)}</td>
         <td class="pos">+${fmt_g(r.opp_profit)}</td>
@@ -1493,7 +1528,7 @@ function initTopOpportunities() {
       const rank = i + 1;
       return `<tr class="${rowOppClass(rank)}">
         <td class="muted" style="text-align:center">${rank}</td>
-        <td>${r.item_name}</td>
+        <td>${itemCell(r)}</td>
         <td>${fmt_g(r.bankarang_avg_buy)}</td>
         <td>${fmt_g(r.live_ah_min)}</td>
         <td class="pos">+${fmt_g(r.opp_premium)}</td>
