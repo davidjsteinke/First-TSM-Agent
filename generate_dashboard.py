@@ -112,6 +112,8 @@ def build_profit_stats(records: list[dict]) -> list[dict]:
 
     out = []
     for iid in set(buy_acc) & set(sell_acc):
+        if blizzard_api.is_excluded_item(iid):
+            continue
         b, s = buy_acc[iid], sell_acc[iid]
         avg_buy  = b["gold"] / b["qty"]
         avg_sell = s["gold"] / s["qty"]
@@ -163,6 +165,9 @@ def build_live_arbitrage(names: dict) -> list[dict]:
         # Focus on Midnight expansion items — these have reliable price data
         # and match the rest of the dashboard's reagent scope.
         if iid < MIDNIGHT_MIN_ID:
+            continue
+
+        if blizzard_api.is_excluded_item(iid):
             continue
 
         prices = {r: realm_data[r][iid]["min_price"] for r in realms_present}
@@ -472,6 +477,9 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
             if realm == PRIMARY_REALM and avg_buy is None and avg_sell is None:
                 continue
 
+            if blizzard_api.is_excluded_item(iid):
+                continue
+
             name     = names.get(str(iid), f"Unknown Item ({iid})")
             live_min = snap["min_price"]
             live_avg = snap["avg_price"]
@@ -557,6 +565,16 @@ def _prefetch_dashboard_names(existing: dict) -> None:
 
         if deduped:
             blizzard_api.prefetch_item_names(deduped, max_new=200, delay=0.05)
+
+        # Backfill class info for items already named but lacking class data.
+        # Covers items fetched before class tracking was added (200/run cap).
+        all_live_ids: list[int] = []
+        for realm in ALL_REALMS:
+            for snap in live_ah_db.get_all_latest_snapshots(realm):
+                iid = snap["item_id"]
+                if iid >= MIDNIGHT_MIN_ID:
+                    all_live_ids.append(iid)
+        blizzard_api.prefetch_item_classes(all_live_ids, max_new=200, delay=0.05)
     except Exception as exc:
         print(f"  [name prefetch] warning: {exc}")
 

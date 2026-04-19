@@ -32,6 +32,7 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
+import blizzard_api
 import live_ah_db
 
 SCRIPT_DIR  = Path(__file__).parent
@@ -217,6 +218,8 @@ def build_reagent_signals(records: list[dict], names: dict,
     for iid in all_ids:
         name = names.get(str(iid), f"Item {iid}")
         if not is_midnight_reagent(name, iid):
+            continue
+        if blizzard_api.is_excluded_item(iid):
             continue
 
         b = buy_acc.get(iid)

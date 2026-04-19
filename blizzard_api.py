@@ -24,8 +24,16 @@ from pathlib import Path
 # Config
 # ---------------------------------------------------------------------------
 
-ENV_FILE   = Path.home() / ".env"
-CACHE_FILE = Path.home() / "item_names.json"
+ENV_FILE         = Path.home() / ".env"
+CACHE_FILE       = Path.home() / "item_names.json"
+ITEM_CLASS_FILE  = Path.home() / "item_class_ids.json"
+
+# Item class/subclass combos to exclude from flipping analysis.
+# class 17        = Battle Pets
+# class 15 sub 2  = Companion Pets (old cage-pet format)
+# class 15 sub 5  = Mounts
+_EXCLUDED_CLASS_IDS: frozenset[int] = frozenset({17})
+_EXCLUDED_CLASS_SUB_PAIRS: frozenset[tuple] = frozenset({(15, 2), (15, 5)})
 
 OAUTH_URL  = "https://oauth.battle.net/token"
 # US region; item names are region-agnostic for en_US
@@ -123,11 +131,45 @@ _cache: dict[str, str] = _load_cache()
 
 
 # ---------------------------------------------------------------------------
+# Item class cache (persisted to item_class_ids.json)
+# Stores {item_id_str: {"c": class_id, "s": subclass_id}}
+# ---------------------------------------------------------------------------
+
+def _load_class_cache() -> dict[str, dict]:
+    if ITEM_CLASS_FILE.exists():
+        try:
+            return json.loads(ITEM_CLASS_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def _save_class_cache(cache: dict[str, dict]) -> None:
+    ITEM_CLASS_FILE.write_text(
+        json.dumps(cache, separators=(',', ':'), ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+_class_cache: dict[str, dict] = _load_class_cache()
+
+
+def is_excluded_item(item_id: int) -> bool:
+    """Return True for Battle Pets, Companion Pets, and Mounts."""
+    entry = _class_cache.get(str(item_id))
+    if entry is None:
+        return False  # unknown class → include by default
+    c = entry.get("c")
+    s = entry.get("s")
+    return c in _EXCLUDED_CLASS_IDS or (c, s) in _EXCLUDED_CLASS_SUB_PAIRS
+
+
+# ---------------------------------------------------------------------------
 # API lookup
 # ---------------------------------------------------------------------------
 
-def _fetch_item_name(item_id: int, token: str) -> str:
-    """Hit the Blizzard item API and return the en_US name."""
+def _fetch_item_info(item_id: int, token: str) -> tuple[str, int | None, int | None]:
+    """Hit the Blizzard item API and return (name, class_id, subclass_id)."""
     url = (
         f"{API_BASE}/data/wow/item/{item_id}"
         f"?namespace={NAMESPACE}&locale={LOCALE}"
@@ -138,7 +180,9 @@ def _fetch_item_name(item_id: int, token: str) -> str:
     )
     with urllib.request.urlopen(req, timeout=10) as resp:
         data = json.loads(resp.read())
-    return data["name"]
+    class_id    = data.get("item_class",    {}).get("id")
+    subclass_id = data.get("item_subclass", {}).get("id")
+    return data["name"], class_id, subclass_id
 
 
 # ---------------------------------------------------------------------------
@@ -148,8 +192,9 @@ def _fetch_item_name(item_id: int, token: str) -> str:
 def get_item_name(item_id: int) -> str:
     """
     Return the WoW item name for item_id.
+    Also saves item class/subclass to item_class_ids.json on each new lookup.
     Results are cached in item_names.json.
-    Falls back to 'Item {item_id}' if the lookup fails for any reason.
+    Falls back to 'Unknown Item ({item_id})' if the lookup fails.
     """
     key = str(item_id)
 
@@ -158,7 +203,9 @@ def get_item_name(item_id: int) -> str:
 
     try:
         token = _get_token()
-        name  = _fetch_item_name(item_id, token)
+        name, class_id, subclass_id = _fetch_item_info(item_id, token)
+        _class_cache[key] = {"c": class_id, "s": subclass_id}
+        _save_class_cache(_class_cache)
     except Exception as exc:
         # Non-fatal: bad IDs (bonus-ID variants, test items) return 404
         print(f"  [blizzard_api] lookup failed for item {item_id}: {exc}")
@@ -173,6 +220,7 @@ def prefetch_item_names(item_ids: list[int], max_new: int = 200,
                         delay: float = 0.05) -> dict[int, str]:
     """
     Bulk-fetch names for a list of item IDs, skipping those already cached.
+    Also saves item class/subclass on each new lookup.
     Returns {item_id: name} for all IDs.
 
     max_new  — cap on new API calls per invocation (rest deferred to next run)
@@ -195,6 +243,42 @@ def prefetch_item_names(item_ids: list[int], max_new: int = 200,
         print(f"  [blizzard_api] done — cache now has {len(_cache)} entries")
 
     return {iid: _cache.get(str(iid), f"Unknown Item ({iid})") for iid in item_ids}
+
+
+def prefetch_item_classes(item_ids: list[int], max_new: int = 200,
+                          delay: float = 0.05) -> None:
+    """
+    Backfill item class/subclass for IDs already in the name cache but lacking
+    class info.  Useful for items fetched before class tracking was added.
+    Does NOT re-fetch names — only saves class data.
+    """
+    uncached = [iid for iid in item_ids if str(iid) not in _class_cache]
+    to_fetch = uncached[:max_new]
+    if not to_fetch:
+        return
+
+    print(f"  [blizzard_api] backfilling class info for {len(to_fetch)} items "
+          f"({len(uncached) - len(to_fetch)} deferred)...")
+    try:
+        token = _get_token()
+    except Exception as exc:
+        print(f"  [blizzard_api] class backfill skipped (auth error): {exc}")
+        return
+
+    fetched = 0
+    for iid in to_fetch:
+        key = str(iid)
+        try:
+            _, class_id, subclass_id = _fetch_item_info(iid, token)
+            _class_cache[key] = {"c": class_id, "s": subclass_id}
+            fetched += 1
+        except Exception:
+            pass
+        if delay > 0:
+            time.sleep(delay)
+
+    _save_class_cache(_class_cache)
+    print(f"  [blizzard_api] class cache now has {len(_class_cache)} entries")
 
 
 # ---------------------------------------------------------------------------
