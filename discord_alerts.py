@@ -37,7 +37,7 @@ import live_ah_db
 
 SCRIPT_DIR  = Path(__file__).parent
 DATA_FILE   = Path.home() / "tsm_data.json"
-NAMES_FILE  = Path.home() / "item_names.json"
+NAMES_FILE  = Path(__file__).parent / "item_names.json"
 LOG_FILE    = SCRIPT_DIR / "logs" / "agent.log"
 ENV_FILE    = SCRIPT_DIR / ".env"
 
@@ -216,7 +216,7 @@ def build_reagent_signals(records: list[dict], names: dict,
     live_ah_found   = 0
 
     for iid in all_ids:
-        name = names.get(str(iid), f"Item {iid}")
+        name = names.get(str(iid), f"Unknown Item ({iid})")
         if not is_midnight_reagent(name, iid):
             continue
         if blizzard_api.is_excluded_item(iid):
