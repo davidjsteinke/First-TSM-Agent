@@ -14,6 +14,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+import blizzard_api
 import live_ah_db
 
 # Resolve paths relative to this file so the script works from any CWD
@@ -86,7 +87,7 @@ def load_item_names() -> dict[str, str]:
 
 
 def item_name(iid: int, cache: dict) -> str:
-    return cache.get(str(iid), f"Item {iid}")
+    return cache.get(str(iid), f"Unknown Item ({iid})")
 
 
 def build_profit_stats(records: list[dict]) -> list[dict]:
@@ -194,7 +195,7 @@ def build_live_arbitrage(names: dict) -> list[dict]:
         if spread_pct < MIN_SPREAD_PCT:
             continue
 
-        name = names.get(str(iid), f"Item {iid}")
+        name = names.get(str(iid), f"Unknown Item ({iid})")
 
         opps.append({
             "item_id":        iid,
@@ -280,7 +281,7 @@ def build_stop_buying(profit_stats: list[dict], names: dict) -> list[dict]:
     for s in profit_stats:
         if s["profit_per_item"] >= 0:
             continue
-        name = names.get(str(s["item_id"]), f"Item {s['item_id']}")
+        name = names.get(str(s["item_id"]), f"Unknown Item ({s['item_id']})")
         if _is_profession_item(name):
             continue
         loss_per_item   = abs(s["profit_per_item"])
@@ -326,7 +327,7 @@ def build_reagents(records: list[dict], names: dict,
 
     out = []
     for iid in all_item_ids:
-        name = names.get(str(iid), f"Item {iid}")
+        name = names.get(str(iid), f"Unknown Item ({iid})")
         if not is_midnight_reagent(name, iid):
             continue
 
@@ -471,7 +472,7 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
             if realm == PRIMARY_REALM and avg_buy is None and avg_sell is None:
                 continue
 
-            name     = names.get(str(iid), f"Item {iid}")
+            name     = names.get(str(iid), f"Unknown Item ({iid})")
             live_min = snap["min_price"]
             live_avg = snap["avg_price"]
 
@@ -529,6 +530,38 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Bulk name prefetch — resolves unknown item IDs via Blizzard API before rendering
+# ---------------------------------------------------------------------------
+
+def _prefetch_dashboard_names(existing: dict) -> None:
+    """
+    Pre-populate item_names.json with names for Midnight-era items in live_ah.db
+    that are not yet cached. Fetches at most 200 new names per run (rest deferred).
+    Called once per generate_dashboard run so all tabs show real names.
+    """
+    try:
+        live_ah_db.init_db()
+        unknown_ids: list[int] = []
+        for realm in ALL_REALMS:
+            for snap in live_ah_db.get_all_latest_snapshots(realm):
+                iid = snap["item_id"]
+                if iid >= MIDNIGHT_MIN_ID and str(iid) not in existing:
+                    unknown_ids.append(iid)
+        # Deduplicate while preserving order
+        seen: set[int] = set()
+        deduped = []
+        for iid in unknown_ids:
+            if iid not in seen:
+                seen.add(iid)
+                deduped.append(iid)
+
+        if deduped:
+            blizzard_api.prefetch_item_names(deduped, max_new=200, delay=0.05)
+    except Exception as exc:
+        print(f"  [name prefetch] warning: {exc}")
+
+
+# ---------------------------------------------------------------------------
 # Build dashboard data payload
 # ---------------------------------------------------------------------------
 
@@ -537,6 +570,11 @@ def build_data() -> dict:
     records       = raw["records"]
     names         = load_item_names()
     market_values = raw.get("market_values", {})
+
+    # Resolve item names for all live AH items not yet in the cache,
+    # then reload so every tab gets real names.
+    _prefetch_dashboard_names(names)
+    names = load_item_names()
 
     # Build live AH lookup dict for reagents tab (full Malfurion data, not filtered)
     try:
@@ -732,6 +770,10 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
 .realm-btn:hover { color: var(--text); border-color: var(--muted); }
 .realm-btn.active { background: var(--surface); color: var(--green); border-color: var(--green); font-weight: 600; }
 
+/* ---- Clickable cards ---- */
+.card[data-panel] { cursor: pointer; transition: background .15s, border-color .15s; }
+.card[data-panel]:hover { background: #1e2530; border-color: var(--muted); }
+
 /* ---- Footer ---- */
 .footer { text-align: center; padding: 18px; color: var(--muted); font-size: .75rem; border-top: 1px solid var(--border); }
 </style>
@@ -890,25 +932,37 @@ function initCards() {
   const liveUpdated = s.live_ah_updated
     ? new Date(s.live_ah_updated).toLocaleTimeString() : 'no data';
   const cards = [
-    { label: 'Profitable Items',    value: s.total_profitable,        sub: `on ${DATA.meta.realm} · Bankarang`,  danger: false },
-    { label: 'Best Single Flip',    value: fmt_g(s.best_flip_profit), sub: s.best_flip_name,                     danger: false },
-    { label: 'Best Arbitrage',      value: fmt_g(s.best_arb_profit),  sub: s.best_arb_name + ' · live AH',      danger: false },
-    { label: 'Total Potential',     value: fmt_g(s.total_potential),  sub: 'if all flips executed',              danger: false },
-    { label: 'Arbitrage Opps',      value: s.arb_count,               sub: 'cross-realm · spread > 20% after cut', danger: false },
-    { label: 'Repricing Concerns',  value: s.reprice_count,           sub: 'cancelled or expired',               danger: false },
-    { label: '⛔ Stop Buying Items', value: s.stop_buying_count,       sub: 'Bankarang · losing gold per flip',  danger: true  },
-    { label: '📡 Live AH Items',    value: s.live_ah_item_count || 0, sub: `updated ${liveUpdated}`,             danger: false },
+    { label: 'Profitable Items',    value: s.total_profitable,        sub: `on ${DATA.meta.realm} · Bankarang`,     danger: false, panel: 'profit' },
+    { label: 'Best Single Flip',    value: fmt_g(s.best_flip_profit), sub: s.best_flip_name,                        danger: false, panel: 'profit' },
+    { label: 'Total Potential',     value: fmt_g(s.total_potential),  sub: 'if all flips executed',                 danger: false, panel: 'profit' },
+    { label: 'Best Arbitrage',      value: fmt_g(s.best_arb_profit),  sub: s.best_arb_name + ' · live AH',         danger: false, panel: 'arbitrage' },
+    { label: 'Arbitrage Opps',      value: s.arb_count,               sub: 'cross-realm · spread > 20% after cut', danger: false, panel: 'arbitrage' },
+    { label: 'Repricing Concerns',  value: s.reprice_count,           sub: 'cancelled or expired',                  danger: false, panel: 'repricing' },
+    { label: '⛔ Stop Buying Items', value: s.stop_buying_count,       sub: 'Bankarang · losing gold per flip',     danger: true,  panel: 'stop-buying' },
+    { label: '📡 Live AH Items',    value: s.live_ah_item_count || 0, sub: `updated ${liveUpdated}`,                danger: false, panel: 'live-ah' },
   ];
   g('cards').innerHTML = cards.map(c => {
     const cls = c.danger ? 'card card-danger' : 'card';
     const val = typeof c.value === 'number' && !String(c.value).includes('g')
       ? c.value.toLocaleString() : c.value;
-    return `<div class="${cls}">
+    return `<div class="${cls}" data-panel="${c.panel}" title="Go to ${c.label}">
       <div class="label">${c.label}</div>
       <div class="value">${val}</div>
       <div class="sub">${c.sub}</div>
     </div>`;
   }).join('');
+
+  g('cards').addEventListener('click', e => {
+    const card = e.target.closest('[data-panel]');
+    if (!card) return;
+    const panel = card.dataset.panel;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const tab = document.querySelector(`.tab[data-panel="${panel}"]`);
+    if (tab) tab.classList.add('active');
+    const panelEl = g(panel);
+    if (panelEl) panelEl.classList.add('active');
+  });
 }
 
 // ---- Tabs ----

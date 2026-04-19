@@ -162,31 +162,39 @@ def get_item_name(item_id: int) -> str:
     except Exception as exc:
         # Non-fatal: bad IDs (bonus-ID variants, test items) return 404
         print(f"  [blizzard_api] lookup failed for item {item_id}: {exc}")
-        name = f"Item {item_id}"
+        name = f"Unknown Item ({item_id})"
 
     _cache[key] = name
     _save_cache(_cache)
     return name
 
 
-def prefetch_item_names(item_ids: list[int]) -> dict[int, str]:
+def prefetch_item_names(item_ids: list[int], max_new: int = 200,
+                        delay: float = 0.05) -> dict[int, str]:
     """
     Bulk-fetch names for a list of item IDs, skipping those already cached.
     Returns {item_id: name} for all IDs.
-    Prints a progress line every 10 fetches.
+
+    max_new  — cap on new API calls per invocation (rest deferred to next run)
+    delay    — seconds to sleep between API calls (default 0.05s = 20 req/s)
     """
     uncached = [iid for iid in item_ids if str(iid) not in _cache]
+    to_fetch = uncached[:max_new]
+    deferred = len(uncached) - len(to_fetch)
 
-    if uncached:
-        print(f"  [blizzard_api] fetching {len(uncached)} new item names "
-              f"({len(item_ids) - len(uncached)} already cached)...")
-        for i, iid in enumerate(uncached, 1):
+    if to_fetch:
+        print(f"  [blizzard_api] fetching {len(to_fetch)} new item names "
+              f"({len(item_ids) - len(uncached)} cached"
+              + (f", {deferred} deferred to next run" if deferred else "") + ")...")
+        for i, iid in enumerate(to_fetch, 1):
             get_item_name(iid)
-            if i % 10 == 0:
-                print(f"    {i}/{len(uncached)} fetched")
+            if delay > 0:
+                time.sleep(delay)
+            if i % 20 == 0:
+                print(f"    {i}/{len(to_fetch)} fetched")
         print(f"  [blizzard_api] done — cache now has {len(_cache)} entries")
 
-    return {iid: _cache.get(str(iid), f"Item {iid}") for iid in item_ids}
+    return {iid: _cache.get(str(iid), f"Unknown Item ({iid})") for iid in item_ids}
 
 
 # ---------------------------------------------------------------------------
