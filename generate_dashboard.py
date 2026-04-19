@@ -127,58 +127,91 @@ def build_profit_stats(records: list[dict]) -> list[dict]:
     return out
 
 
-def build_arbitrage(records: list[dict]) -> list[dict]:
-    # Bankarang-only: cross-realm flipping only matters if Bankarang is doing it.
-    raw: dict = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-    for r in records:
-        if r.get("source") != "Auction": continue
-        if r.get("player") != FLIPPER:   continue
-        dtype = r.get("type")
-        if dtype not in ("Sales", "Buys"): continue
-        iid  = r.get("item_id")
-        qty  = r.get("quantity") or 1
-        gold = r.get("price_gold")
-        if not iid or not gold: continue
-        raw[iid][r["realm"]][dtype].append((gold / qty, qty))
+def build_live_arbitrage(names: dict) -> list[dict]:
+    """
+    Cross-realm arbitrage using live AH min prices across all 5 realms.
+    No character history filter — any item present on multiple realms qualifies.
 
-    realm_prices = {}
-    for iid, realms in raw.items():
-        realm_prices[iid] = {}
-        for realm, sources in realms.items():
-            chosen, label = (sources["Sales"], "Sales") if "Sales" in sources \
-                            else (sources["Buys"], "Buys")
-            total_qty = sum(q for _, q in chosen)
-            realm_prices[iid][realm] = {
-                "avg_price": sum(p*q for p,q in chosen) / total_qty,
-                "txns": len(chosen), "source": label,
-            }
+    Opportunity: (sell_realm_min × 0.95) − buy_realm_min ≥ MIN_SPREAD_PCT%
+    Returns top 100 by net profit descending.
+    """
+    try:
+        live_ah_db.init_db()
+    except Exception:
+        return []
+
+    realm_data: dict[str, dict[int, dict]] = {}
+    for realm in ALL_REALMS:
+        try:
+            snaps = live_ah_db.get_all_latest_snapshots(realm)
+            realm_data[realm] = {s["item_id"]: s for s in snaps}
+        except Exception:
+            realm_data[realm] = {}
+
+    # Collect item_ids present in at least 2 realms
+    item_realms: dict[int, list[str]] = {}
+    for realm, items in realm_data.items():
+        for iid in items:
+            item_realms.setdefault(iid, []).append(realm)
 
     opps = []
-    for iid, realms in realm_prices.items():
-        if len(realms) < 2: continue
-        best = None
-        for buy_realm, bd in realms.items():
-            for sell_realm, sd in realms.items():
-                if buy_realm == sell_realm: continue
-                sell_net   = sd["avg_price"] * (1 - AH_CUT)
-                profit     = sell_net - bd["avg_price"]
-                spread_pct = (profit / bd["avg_price"] * 100) if bd["avg_price"] else 0
-                if spread_pct < MIN_SPREAD_PCT: continue
-                if best is None or profit > best["profit_per_item"]:
-                    best = {
-                        "item_id": iid,
-                        "buy_realm": buy_realm, "buy_price": bd["avg_price"],
-                        "buy_txns": bd["txns"],  "buy_source": bd["source"],
-                        "sell_realm": sell_realm, "sell_net": sell_net,
-                        "sell_gross": sd["avg_price"],
-                        "sell_txns": sd["txns"],  "sell_source": sd["source"],
-                        "profit_per_item": profit, "spread_pct": spread_pct,
-                        "total_txns": bd["txns"] + sd["txns"],
-                    }
-        if best: opps.append(best)
+    for iid, realms_present in item_realms.items():
+        if len(realms_present) < 2:
+            continue
 
-    opps.sort(key=lambda x: x["profit_per_item"], reverse=True)
-    return opps
+        # Focus on Midnight expansion items — these have reliable price data
+        # and match the rest of the dashboard's reagent scope.
+        if iid < MIDNIGHT_MIN_ID:
+            continue
+
+        prices = {r: realm_data[r][iid]["min_price"] for r in realms_present}
+        buy_realm  = min(prices, key=prices.__getitem__)
+        sell_realm = max(prices, key=prices.__getitem__)
+
+        if buy_realm == sell_realm:
+            continue
+
+        buy_price  = prices[buy_realm]
+        sell_price = prices[sell_realm]
+
+        if buy_price <= 0:
+            continue
+
+        # Exclude parked/placeholder prices above a reasonable reagent ceiling.
+        # Cap at 50k to exclude obvious gear-level items slipping through the filter.
+        # Require ≥5 listings on both sides to confirm active markets (not parked prices).
+        if sell_price >= 50_000 or buy_price >= 50_000:
+            continue
+        buy_snap  = realm_data[buy_realm][iid]
+        sell_snap = realm_data[sell_realm][iid]
+        if buy_snap["listing_count"] < 5 or sell_snap["listing_count"] < 5:
+            continue
+
+        sell_net   = sell_price * (1 - AH_CUT)
+        net_profit = sell_net - buy_price
+        spread_pct = (net_profit / buy_price) * 100
+
+        if spread_pct < MIN_SPREAD_PCT:
+            continue
+
+        name = names.get(str(iid), f"Item {iid}")
+
+        opps.append({
+            "item_id":        iid,
+            "item_name":      name,
+            "category":       _item_category(iid, name),
+            "buy_realm":      buy_realm,
+            "buy_at":         round(buy_price, 4),
+            "sell_realm":     sell_realm,
+            "sell_at":        round(sell_price, 4),
+            "net_profit":     round(net_profit, 4),
+            "spread_pct":     round(spread_pct, 1),
+            "listing_count":  buy_snap["listing_count"],
+            "total_quantity": buy_snap["total_quantity"],
+        })
+
+    opps.sort(key=lambda x: x["net_profit"], reverse=True)
+    return opps[:100]
 
 
 def build_repricing(records: list[dict]) -> list[dict]:
@@ -514,7 +547,7 @@ def build_data() -> dict:
         live_malfurion_dict = {}
 
     profit_stats      = build_profit_stats(records)
-    arbitrage         = build_arbitrage(records)
+    arbitrage         = build_live_arbitrage(names)
     repricing         = build_repricing(records)
     stop_buying_stats = build_stop_buying(profit_stats, names)
     reagent_rows      = build_reagents(records, names, market_values, live_malfurion_dict)
@@ -523,7 +556,7 @@ def build_data() -> dict:
     enrich = lambda s: {**s, "item_name": item_name(s["item_id"], names)}
 
     profit_rows      = [enrich(s) for s in profit_stats]
-    arb_rows         = [enrich(o) for o in arbitrage]
+    arb_rows         = arbitrage   # already contains item_name from build_live_arbitrage
     reprice_rows     = [enrich(r) for r in repricing]
     stop_buying_rows = [enrich(s) for s in stop_buying_stats]
 
@@ -549,7 +582,7 @@ def build_data() -> dict:
             "best_flip_name":      best_flip["item_name"] if best_flip else "—",
             "best_flip_profit":    best_flip["profit_per_item"] if best_flip else 0,
             "best_arb_name":       best_arb["item_name"] if best_arb else "—",
-            "best_arb_profit":     best_arb["profit_per_item"] if best_arb else 0,
+            "best_arb_profit":     best_arb["net_profit"] if best_arb else 0,
             "total_potential":     total_pot,
             "arb_count":           len(arb_rows),
             "reprice_count":       len(reprice_rows),
@@ -758,8 +791,8 @@ function rowClass(val, type) {
     return '';
   }
   if (type === 'spread') {
-    if (val >= 100) return 'row-green';
-    if (val >= 20)  return 'row-yellow';
+    if (val >= 50) return 'row-green';
+    if (val >= 20) return 'row-yellow';
     return '';
   }
   return '';
@@ -859,9 +892,9 @@ function initCards() {
   const cards = [
     { label: 'Profitable Items',    value: s.total_profitable,        sub: `on ${DATA.meta.realm} · Bankarang`,  danger: false },
     { label: 'Best Single Flip',    value: fmt_g(s.best_flip_profit), sub: s.best_flip_name,                     danger: false },
-    { label: 'Best Arbitrage',      value: fmt_g(s.best_arb_profit),  sub: s.best_arb_name,                      danger: false },
+    { label: 'Best Arbitrage',      value: fmt_g(s.best_arb_profit),  sub: s.best_arb_name + ' · live AH',      danger: false },
     { label: 'Total Potential',     value: fmt_g(s.total_potential),  sub: 'if all flips executed',              danger: false },
-    { label: 'Arbitrage Opps',      value: s.arb_count,               sub: 'spread > 20% after AH cut',         danger: false },
+    { label: 'Arbitrage Opps',      value: s.arb_count,               sub: 'cross-realm · spread > 20% after cut', danger: false },
     { label: 'Repricing Concerns',  value: s.reprice_count,           sub: 'cancelled or expired',               danger: false },
     { label: '⛔ Stop Buying Items', value: s.stop_buying_count,       sub: 'Bankarang · losing gold per flip',  danger: true  },
     { label: '📡 Live AH Items',    value: s.live_ah_item_count || 0, sub: `updated ${liveUpdated}`,             danger: false },
@@ -906,19 +939,86 @@ function initProfit() {
 
 // ---- Arbitrage table ----
 function initArbitrage() {
+  const container = g('arbitrage');
+  const rows = DATA.arbitrage || [];
+
+  if (!rows.length) {
+    container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted)">No cross-realm arbitrage opportunities found. Live AH data may not be populated — run refresh_live_ah.sh.</div>';
+    return;
+  }
+
+  const note = `<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">
+    📡 Live AH prices · Net Profit = (Sell Realm Min × 0.95) − Buy Realm Min · Showing top ${rows.length} of up to 100 opportunities
+  </div>`;
+
   const cols = [
-    { key: 'item_name',       label: 'Item',          num: false },
-    { key: 'buy_realm',       label: 'Buy Realm',     num: false, format: 'realm' },
-    { key: 'buy_price',       label: 'Buy Price',     num: true,  format: 'gold' },
-    { key: 'buy_source',      label: 'Src',           num: false, format: 'src' },
-    { key: 'sell_realm',      label: 'Sell Realm',    num: false, format: 'realm' },
-    { key: 'sell_net',        label: 'Sell Net',      num: true,  format: 'gold' },
-    { key: 'sell_source',     label: 'Src',           num: false, format: 'src' },
-    { key: 'profit_per_item', label: 'Profit / Item', num: true,  format: 'gold' },
-    { key: 'spread_pct',      label: 'Spread %',      num: true,  format: 'pct', cctype: 'spread' },
-    { key: 'total_txns',      label: 'Txns',          num: true,  format: 'int' },
+    { key: 'item_name',      label: 'Item',                num: false },
+    { key: 'category',       label: 'Category',            num: false },
+    { key: 'buy_realm',      label: 'Buy Realm',           num: false, format: 'realm' },
+    { key: 'buy_at',         label: 'Buy At',              num: true,  format: 'gold' },
+    { key: 'sell_realm',     label: 'Sell Realm',          num: false, format: 'realm' },
+    { key: 'sell_at',        label: 'Sell At',             num: true,  format: 'gold' },
+    { key: 'net_profit',     label: 'Net Profit / Unit',   num: true,  format: 'gold' },
+    { key: 'spread_pct',     label: 'Spread %',            num: true,  format: 'pct', cctype: 'spread' },
+    { key: 'listing_count',  label: 'Listings Available',  num: true,  format: 'int' },
+    { key: 'total_quantity', label: 'Total Qty Available', num: true,  format: 'int' },
   ];
-  makeTable('arbitrage', cols, DATA.arbitrage, 'spread_pct', 'spread');
+
+  // Reuse makeTable but inject the note above it
+  const scratch = document.createElement('div');
+  scratch.id = '_arb_scratch';
+  document.body.appendChild(scratch);
+  makeTable('_arb_scratch', cols, rows, 'spread_pct', 'spread');
+  container.innerHTML = note + scratch.innerHTML;
+  scratch.remove();
+
+  // Re-attach sort listeners
+  let sortCol = 6, sortAsc = false;
+  function rerender() {
+    const sorted = [...rows].sort((a, b) => {
+      const col = cols[sortCol];
+      const va = a[col.key], vb = b[col.key];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1; if (vb == null) return -1;
+      const cmp = col.num ? (va - vb) : String(va).localeCompare(String(vb));
+      return sortAsc ? cmp : -cmp;
+    });
+    function rowCls(v) {
+      if (v >= 50) return 'row-green';
+      if (v >= 20) return 'row-yellow';
+      return '';
+    }
+    const tbody = sorted.map(row => {
+      const rc = rowCls(row.spread_pct);
+      const cells = cols.map(c => {
+        const raw = row[c.key];
+        let display = raw, cc = '';
+        if (c.format === 'gold')  { display = fmt_g(raw); cc = raw > 0 ? 'pos' : raw < 0 ? 'neg' : ''; }
+        if (c.format === 'pct')   { display = fmt_pct(raw); cc = raw >= 50 ? 'hi-pct' : raw >= 20 ? 'pos' : 'muted'; }
+        if (c.format === 'int')   { display = raw != null ? raw.toLocaleString() : '—'; }
+        if (c.format === 'realm') { display = raw ? `<span class="realm-tag">${raw}</span>` : '—'; }
+        return `<td${cc ? ` class="${cc}"` : ''}>${display}</td>`;
+      }).join('');
+      return `<tr class="${rc}">${cells}</tr>`;
+    }).join('');
+
+    const thead = cols.map((c, i) => {
+      const cls = i === sortCol ? ' class="sorted"' : '';
+      const icon = i === sortCol ? (sortAsc ? ' <span class="sort-icon">↑</span>' : ' <span class="sort-icon">↓</span>') : ' <span class="sort-icon" style="opacity:.25">↕</span>';
+      return `<th${cls} data-col="${i}">${c.label}${icon}</th>`;
+    }).join('');
+
+    container.innerHTML = `${note}<div class="table-wrap"><table>
+      <thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
+    container.querySelectorAll('thead th').forEach(th => {
+      th.addEventListener('click', () => {
+        const ci = +th.dataset.col;
+        if (ci === sortCol) sortAsc = !sortAsc; else { sortCol = ci; sortAsc = false; }
+        rerender();
+      });
+    });
+  }
+  rerender();
 }
 
 // ---- Repricing table ----
