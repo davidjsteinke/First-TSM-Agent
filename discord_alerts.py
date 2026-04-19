@@ -348,15 +348,11 @@ def format_message(top_buys: list[dict], top_sells: list[dict],
     if top_buys:
         lines.append("📈 **TOP 5 BUYS** *(buy now — AH price below your avg sell)*")
         for i, item in enumerate(top_buys, 1):
-            src = _SOURCE_LABEL.get(item["price_source"], "Ref")
-            listings = f" | {item['listing_count']} listings" if item.get("listing_count") else ""
-            lines.append(
-                f"{i}. **{item['name']}** — "
-                f"AH: {fmt_g(item['ref_price'])} ({src}) | "
-                f"Your sell avg: {fmt_g(item.get('avg_sell'))} | "
-                f"**+{fmt_g(item['profit'])} profit** "
-                f"({item['txns']} txns{listings})"
-            )
+            listings_str = f"{item['listing_count']} listings up" if item.get("listing_count") else "listings unknown"
+            lines.append(f"{i}. **{item['name']}**")
+            lines.append(f"   Buy at: {fmt_g(item['ref_price'])}  →  Bankarang sold avg: {fmt_g(item.get('avg_sell'))}")
+            lines.append(f"   Potential profit: **+{fmt_g(item['profit'])} per unit**")
+            lines.append(f"   {listings_str} | {item['txns']} txn history")
     else:
         lines.append("📈 **TOP 5 BUYS** — *No strong buy signals right now*")
 
@@ -365,15 +361,11 @@ def format_message(top_buys: list[dict], top_sells: list[dict],
     if top_sells:
         lines.append("📉 **TOP 5 SELLS** *(list these now — AH price above your avg buy)*")
         for i, item in enumerate(top_sells, 1):
-            src = _SOURCE_LABEL.get(item["price_source"], "Ref")
-            listings = f" | {item['listing_count']} listings" if item.get("listing_count") else ""
-            lines.append(
-                f"{i}. **{item['name']}** — "
-                f"AH: {fmt_g(item['ref_price'])} ({src}) | "
-                f"Your buy avg: {fmt_g(item.get('avg_buy'))} | "
-                f"**+{fmt_g(item['profit'])} premium** "
-                f"({item['txns']} txns{listings})"
-            )
+            listings_str = f"{item['listing_count']} listings up" if item.get("listing_count") else "listings unknown"
+            lines.append(f"{i}. **{item['name']}**")
+            lines.append(f"   Bankarang bought avg: {fmt_g(item.get('avg_buy'))}  →  Live AH min: {fmt_g(item['ref_price'])}")
+            lines.append(f"   Potential premium: **+{fmt_g(item['profit'])} per unit**")
+            lines.append(f"   {listings_str} | {item['txns']} txn history")
     else:
         lines.append("📉 **TOP 5 SELLS** — *No items currently above market*")
 

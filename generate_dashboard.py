@@ -312,15 +312,19 @@ def build_reagents(records: list[dict], names: dict,
         ref_price = live_ah_min or market_values.get(str(iid))
         profit_potential = (ref_price - avg_buy) if (ref_price and avg_buy) else None
 
+        net_if_sold_at_min = round(live_ah_min * 0.95 - avg_buy, 4) if (live_ah_min is not None and avg_buy is not None) else None
+
         out.append({
-            "item_id":          iid,
-            "item_name":        name,
-            "live_ah_min":      live_ah_min,
-            "live_ah_avg":      live_ah_avg,
-            "avg_buy":          avg_buy,
-            "avg_sell":         avg_sell,
-            "profit_potential": profit_potential,
-            "transaction_count": txn_count,
+            "item_id":            iid,
+            "item_name":          name,
+            "live_ah_min":        live_ah_min,
+            "buy_at":             live_ah_min,
+            "live_ah_avg":        live_ah_avg,
+            "avg_buy":            avg_buy,
+            "avg_sell":           avg_sell,
+            "profit_potential":   profit_potential,
+            "net_if_sold_at_min": net_if_sold_at_min,
+            "transaction_count":  txn_count,
         })
 
     out.sort(key=lambda x: (
@@ -450,11 +454,14 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
             if ts and (last_updated is None or ts > last_updated):
                 last_updated = ts
 
+            net_if_sold_at_min = round(live_min * 0.95 - avg_buy, 4) if avg_buy is not None else None
+
             rows.append({
                 "item_id":              iid,
                 "item_name":            name,
                 "category":             _item_category(iid, name),
                 "live_ah_min":          round(live_min, 4),
+                "buy_at":               round(live_min, 4),
                 "live_ah_avg":          round(live_avg, 4),
                 "total_quantity":       snap["total_quantity"],
                 "listing_count":        snap["listing_count"],
@@ -463,6 +470,7 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
                 "buy_txns":             bp.get("buy_txns", 0),
                 "sell_txns":            bp.get("sell_txns", 0),
                 "spread_pct":           spread_pct,
+                "net_if_sold_at_min":   net_if_sold_at_min,
                 "last_updated":         ts,
             })
 
@@ -716,6 +724,7 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
   <div class="tab" data-panel="stop-buying" style="color:var(--red)">⛔ Stop Buying</div>
   <div class="tab" data-panel="reagents" style="color:var(--blue)">⚗ Reagents</div>
   <div class="tab" data-panel="live-ah" style="color:var(--green)">📡 Live AH</div>
+  <div class="tab" data-panel="top-opps" style="color:var(--gold)">⭐ Top Opportunities</div>
 </div>
 
 <div id="profit" class="panel active"></div>
@@ -724,6 +733,7 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
 <div id="stop-buying" class="panel"></div>
 <div id="reagents" class="panel"></div>
 <div id="live-ah" class="panel"></div>
+<div id="top-opps" class="panel"></div>
 
 <div class="footer">Generated from <span id="source-file"></span></div>
 
@@ -1003,13 +1013,15 @@ function initReagents() {
   }
 
   const cols = [
-    { key: 'item_name',        label: 'Item',             num: false },
-    { key: 'live_ah_min',      label: 'Live AH Min',      num: true,  format: 'gold_live' },
-    { key: 'live_ah_avg',      label: 'Live AH Avg',      num: true,  format: 'gold_opt' },
-    { key: 'avg_buy',          label: 'My Avg Buy',       num: true,  format: 'gold_opt' },
-    { key: 'avg_sell',         label: 'My Avg Sell',      num: true,  format: 'gold_opt' },
-    { key: 'profit_potential', label: 'Profit Potential', num: true,  format: 'profit_g' },
-    { key: 'transaction_count',label: 'Txns',             num: true,  format: 'int' },
+    { key: 'item_name',          label: 'Item',               num: false },
+    { key: 'live_ah_min',        label: 'Live AH Min',        num: true,  format: 'gold_live' },
+    { key: 'live_ah_avg',        label: 'Live AH Avg',        num: true,  format: 'gold_opt' },
+    { key: 'avg_buy',            label: 'My Avg Buy',         num: true,  format: 'gold_opt' },
+    { key: 'avg_sell',           label: 'My Avg Sell',        num: true,  format: 'gold_opt' },
+    { key: 'profit_potential',   label: 'Profit Potential',   num: true,  format: 'profit_g' },
+    { key: 'transaction_count',  label: 'Txns',               num: true,  format: 'int' },
+    { key: 'buy_at',             label: 'Buy At',             num: true,  format: 'gold_live', tip: 'Buy any listing at or below this price' },
+    { key: 'net_if_sold_at_min', label: 'Net If Sold At Min', num: true,  format: 'profit_g',  tip: 'Estimated profit per unit after the 5% AH cut, if you re-listed at the current minimum (revenue = Live AH Min × 0.95, cost = your avg buy)' },
   ];
 
   let sortCol = 5, sortAsc = false;
@@ -1037,7 +1049,8 @@ function initReagents() {
       const icon = i === sortCol
         ? (sortAsc ? ' <span class="sort-icon">↑</span>' : ' <span class="sort-icon">↓</span>')
         : ' <span class="sort-icon" style="opacity:.25">↕</span>';
-      return `<th${cls} data-col="${i}">${c.label}${icon}</th>`;
+      const tip = c.tip ? ` title="${c.tip}"` : '';
+      return `<th${cls}${tip} data-col="${i}">${c.label}${icon}</th>`;
     }).join('');
 
     const tbody = sorted.map(row => {
@@ -1096,14 +1109,16 @@ function initLiveAH() {
   let sortCol = 9, sortAsc = false;  // default: spread_pct desc
 
   const TOOLTIPS = {
-    'live_ah_min':        'Cheapest single listing currently on the AH',
-    'live_ah_avg':        'Average price across all current listings',
-    'total_quantity':     'Total units available across all listings',
-    'listing_count':      'Number of separate auctions on the AH right now',
-    'bankarang_avg_buy':  "Bankarang's weighted average buy price (Malfurion only)",
-    'bankarang_avg_sell': "Bankarang's weighted average sell price (Malfurion only)",
-    'buy_txns':           'Number of Bankarang buy transactions',
-    'spread_pct':         'Live AH vs Bankarang avg — positive = buy opportunity, negative = price above avg sell',
+    'live_ah_min':          'Cheapest single listing currently on the AH',
+    'live_ah_avg':          'Average price across all current listings',
+    'total_quantity':       'Total units available across all listings',
+    'listing_count':        'Number of separate auctions on the AH right now',
+    'bankarang_avg_buy':    "Bankarang's weighted average buy price (Malfurion only)",
+    'bankarang_avg_sell':   "Bankarang's weighted average sell price (Malfurion only)",
+    'buy_txns':             'Number of Bankarang buy transactions',
+    'spread_pct':           'Live AH vs Bankarang avg — positive = buy opportunity, negative = price above avg sell',
+    'buy_at':               'Buy any listing at or below this price',
+    'net_if_sold_at_min':   "Estimated profit per unit after the 5% AH cut, if you re-listed at the current minimum (revenue = Live AH Min × 0.95, cost = Bankarang's avg buy)",
   };
 
   const cols = [
@@ -1117,6 +1132,8 @@ function initLiveAH() {
     { key: 'bankarang_avg_sell', label: 'Bnkrng Sell',        num: true,  fmt: 'gold_opt' },
     { key: 'buy_txns',           label: 'Buy Txns',           num: true,  fmt: 'int_opt' },
     { key: 'spread_pct',         label: 'Spread %',           num: true,  fmt: 'spread' },
+    { key: 'buy_at',             label: 'Buy At',             num: true,  fmt: 'gold' },
+    { key: 'net_if_sold_at_min', label: 'Net If Sold At Min', num: true,  fmt: 'profit_net' },
     { key: 'last_updated',       label: 'Updated',            num: false, fmt: 'ts' },
   ];
 
@@ -1168,6 +1185,11 @@ function initLiveAH() {
             if (v == null) return '<td class="muted">—</td>';
             const cls = v > 20 ? 'pos' : v < -20 ? 'neg' : 'muted';
             return `<td class="${cls}">${v >= 0 ? '+' : ''}${v.toFixed(1)}%</td>`;
+          }
+          case 'profit_net': {
+            if (v == null) return '<td class="muted">—</td>';
+            const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted';
+            return `<td class="${cls}">${(v >= 0 ? '+' : '') + fmt_g(v)}</td>`;
           }
           case 'ts': {
             if (!v) return '<td class="muted">—</td>';
@@ -1235,6 +1257,99 @@ function initLiveAH() {
   render();
 }
 
+// ---- Top Opportunities tab ----
+function initTopOpportunities() {
+  const container = g('top-opps');
+  const malf = (DATA.live_ah && DATA.live_ah.by_realm && DATA.live_ah.by_realm['Malfurion']) || [];
+
+  // TOP 25 BUYS: live_ah_min well below Bankarang avg sell → buy now, sell later
+  const buys = malf
+    .filter(r => r.live_ah_min != null && r.bankarang_avg_sell != null && r.bankarang_avg_sell > r.live_ah_min)
+    .map(r => ({...r, opp_profit: r.bankarang_avg_sell - r.live_ah_min}))
+    .sort((a, b) => b.opp_profit - a.opp_profit)
+    .slice(0, 25);
+
+  // TOP 25 SELLS: live_ah_min well above Bankarang avg buy → list now while price is high
+  const sells = malf
+    .filter(r => r.live_ah_min != null && r.bankarang_avg_buy != null && r.live_ah_min > r.bankarang_avg_buy)
+    .map(r => ({...r, opp_premium: r.live_ah_min - r.bankarang_avg_buy}))
+    .sort((a, b) => b.opp_premium - a.opp_premium)
+    .slice(0, 25);
+
+  function rowOppClass(rank) {
+    if (rank <= 5)  return 'row-green';
+    if (rank <= 15) return 'row-yellow';
+    return '';
+  }
+
+  function renderBuys() {
+    if (!buys.length) return '<div style="padding:20px;color:var(--muted)">No buy signals right now — no items with live AH min below Bankarang avg sell.</div>';
+    const thead = `<tr>
+      <th style="width:48px">Rank</th><th>Item Name</th>
+      <th title="Cheapest current AH listing">Live AH Min</th>
+      <th title="Bankarang weighted avg sell price">Bankarang's Avg Sell</th>
+      <th title="Avg sell minus live min">Profit / Item</th>
+      <th title="Number of separate auctions right now">Listings Available</th>
+      <th title="Bankarang buy transactions (confidence)">Transactions</th>
+    </tr>`;
+    const tbody = buys.map((r, i) => {
+      const rank = i + 1;
+      return `<tr class="${rowOppClass(rank)}">
+        <td class="muted" style="text-align:center">${rank}</td>
+        <td>${r.item_name}</td>
+        <td>${fmt_g(r.live_ah_min)}</td>
+        <td>${fmt_g(r.bankarang_avg_sell)}</td>
+        <td class="pos">+${fmt_g(r.opp_profit)}</td>
+        <td>${r.listing_count != null ? r.listing_count.toLocaleString() : '—'}</td>
+        <td class="muted">${r.buy_txns || '—'}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+  }
+
+  function renderSells() {
+    if (!sells.length) return '<div style="padding:20px;color:var(--muted)">No sell signals right now — no items with live AH min above Bankarang avg buy.</div>';
+    const thead = `<tr>
+      <th style="width:48px">Rank</th><th>Item Name</th>
+      <th title="Bankarang weighted avg buy price">Bankarang's Avg Buy</th>
+      <th title="Cheapest current AH listing — list at or near this">Live AH Min</th>
+      <th title="Live min minus avg buy">Premium / Item</th>
+      <th title="Number of separate auctions right now (your competition)">Listings Currently Up</th>
+      <th title="Bankarang sell transactions (confidence)">Transactions</th>
+    </tr>`;
+    const tbody = sells.map((r, i) => {
+      const rank = i + 1;
+      return `<tr class="${rowOppClass(rank)}">
+        <td class="muted" style="text-align:center">${rank}</td>
+        <td>${r.item_name}</td>
+        <td>${fmt_g(r.bankarang_avg_buy)}</td>
+        <td>${fmt_g(r.live_ah_min)}</td>
+        <td class="pos">+${fmt_g(r.opp_premium)}</td>
+        <td>${r.listing_count != null ? r.listing_count.toLocaleString() : '—'}</td>
+        <td class="muted">${r.sell_txns || '—'}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+  }
+
+  const lastUpdated = DATA.summary.live_ah_updated
+    ? `Last AH snapshot: ${new Date(DATA.summary.live_ah_updated).toLocaleString()}`
+    : 'No live AH data — run refresh_live_ah.sh';
+
+  container.innerHTML = `
+    <div style="padding:16px 28px 0;font-size:.82rem;color:var(--muted)">
+      📡 ${lastUpdated} &nbsp;·&nbsp; 🟢 Top 5 &nbsp;·&nbsp; 🟡 Ranks 6–15 &nbsp;·&nbsp; Uncolored 16–25
+    </div>
+    <div style="padding:20px 28px 8px;">
+      <div style="font-size:1rem;font-weight:600;color:var(--gold);margin-bottom:4px;">📈 TOP 25 BUYS <span style="font-size:.8rem;font-weight:400;color:var(--muted)">— buy now, sell later (live AH min below Bankarang avg sell)</span></div>
+      ${renderBuys()}
+    </div>
+    <div style="padding:8px 28px 24px;">
+      <div style="font-size:1rem;font-weight:600;color:var(--gold);margin-bottom:4px;">📉 TOP 25 SELLS <span style="font-size:.8rem;font-weight:400;color:var(--muted)">— list these now (live AH min above Bankarang avg buy)</span></div>
+      ${renderSells()}
+    </div>`;
+}
+
 // ---- Boot ----
 initMeta();
 initCards();
@@ -1245,6 +1360,7 @@ initRepricing();
 initStopBuying();
 initReagents();
 initLiveAH();
+initTopOpportunities();
 </script>
 </body>
 </html>
