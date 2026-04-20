@@ -16,7 +16,10 @@ from pathlib import Path
 
 import blizzard_api
 import live_ah_db
+import milling_analysis
+import prospecting_analysis
 import quality_tiers
+import restock_suggestions
 
 # Resolve paths relative to this file so the script works from any CWD
 SCRIPT_DIR      = Path(__file__).parent
@@ -661,6 +664,15 @@ def build_data() -> dict:
     reagent_rows      = build_reagents(records, names, market_values, live_malfurion_dict)
     live_ah           = build_live_ah_data(records, names)
 
+    # Build price lookup dict for crafting analysis (Malfurion min prices)
+    malf_prices: dict[tuple[int, str], float] = {
+        (s["item_id"], s.get("quality_tier", "")): s["min_price"]
+        for s in live_malfurion_dict.values()
+    }
+    milling_rows      = milling_analysis.build_milling_analysis(malf_prices)
+    prospecting_rows  = prospecting_analysis.build_prospecting_analysis(malf_prices)
+    restock_rows      = restock_suggestions.build_restock_suggestions(records, malf_prices, names)
+
     def enrich(s: dict) -> dict | None:
         iid = s["item_id"]
         if str(iid) not in names:
@@ -681,6 +693,10 @@ def build_data() -> dict:
 
     malf_live = live_ah["by_realm"].get(PRIMARY_REALM, [])
     live_item_count = live_ah.get("total_counts", {}).get(PRIMARY_REALM, len(malf_live))
+
+    print(f"  Milling rows:     {len(milling_rows)}")
+    print(f"  Prospecting rows: {len(prospecting_rows)}")
+    print(f"  Restock rows:     {len(restock_rows)}")
 
     return {
         "meta": {
@@ -706,12 +722,15 @@ def build_data() -> dict:
             "live_ah_item_count":  live_item_count,
             "live_ah_updated":     live_ah.get("last_updated"),
         },
-        "profit":      profit_rows,
-        "arbitrage":   arb_rows,
-        "repricing":   reprice_rows,
-        "stop_buying": stop_buying_rows,
-        "reagents":    reagent_rows,
-        "live_ah":     live_ah,
+        "profit":       profit_rows,
+        "arbitrage":    arb_rows,
+        "repricing":    reprice_rows,
+        "stop_buying":  stop_buying_rows,
+        "reagents":     reagent_rows,
+        "live_ah":      live_ah,
+        "milling":      milling_rows,
+        "prospecting":  prospecting_rows,
+        "restock":      restock_rows,
     }
 
 
@@ -880,6 +899,8 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
   <div class="tab" data-panel="repricing">Repricing Concerns</div>
   <div class="tab" data-panel="stop-buying" style="color:var(--red)">⛔ Stop Buying</div>
   <div class="tab" data-panel="reagents" style="color:var(--blue)">⚗ Reagents</div>
+  <div class="tab" data-panel="crafting" style="color:var(--yellow)">⚒ Milling &amp; Prospecting</div>
+  <div class="tab" data-panel="restock" style="color:var(--blue)">🔄 Restock</div>
   <div class="tab" data-panel="live-ah" style="color:var(--green)">📡 Live AH</div>
   <div class="tab" data-panel="top-opps" style="color:var(--gold)">⭐ Top Opportunities</div>
 </div>
@@ -889,6 +910,8 @@ tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; }
 <div id="repricing" class="panel"></div>
 <div id="stop-buying" class="panel"></div>
 <div id="reagents" class="panel"></div>
+<div id="crafting" class="panel"></div>
+<div id="restock" class="panel"></div>
 <div id="live-ah" class="panel"></div>
 <div id="top-opps" class="panel"></div>
 
@@ -1604,6 +1627,180 @@ function initTopOpportunities() {
     </div>`;
 }
 
+// ---- Milling & Prospecting tab ----
+function initCrafting() {
+  const container = g('crafting');
+  const milling     = DATA.milling     || [];
+  const prospecting = DATA.prospecting || [];
+
+  function craftingTable(rows, cols, idPrefix) {
+    if (!rows.length) return '<div style="padding:24px;color:var(--muted)">No data available — check Live AH is populated.</div>';
+    const thead = cols.map((c, i) => `<th data-col="${idPrefix}-${i}">${c.label}</th>`).join('');
+    const tbody = rows.map(row => {
+      const profit = row.profit_per_herb ?? row.profit_per_batch ?? 0;
+      const rc = profit > 0 ? 'row-green' : profit < -1 ? 'row-red' : '';
+      const cells = cols.map(c => {
+        const v = row[c.key];
+        switch (c.fmt) {
+          case 'item':   return `<td>${itemCell(row)}</td>`;
+          case 'gold':   return `<td>${fmt_g(v)}</td>`;
+          case 'pct':    return `<td class="${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${v != null ? v.toFixed(1) : '—'}%</td>`;
+          case 'profit': {
+            const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted';
+            return `<td class="${cls}">${(v >= 0 ? '+' : '') + fmt_g(v)}</td>`;
+          }
+          default: return `<td>${v ?? '—'}</td>`;
+        }
+      }).join('');
+      return `<tr class="${rc}">${cells}</tr>`;
+    }).join('');
+    return `<div class="table-wrap"><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
+  }
+
+  const millingCols = [
+    { key: 'herb_name',        label: 'Herb',              fmt: 'item' },
+    { key: 'quality_tier',     label: 'Tier' },
+    { key: 'pigment_name',     label: 'Output Pigment' },
+    { key: 'pigment_tier',     label: 'Pigment Tier' },
+    { key: 'herb_price',       label: 'Herb Buy Price',    fmt: 'gold' },
+    { key: 'pigment_price',    label: 'Pigment Value',     fmt: 'gold' },
+    { key: 'revenue_per_herb', label: 'Revenue/Herb',      fmt: 'gold' },
+    { key: 'profit_per_herb',  label: 'Profit/Herb',       fmt: 'profit' },
+    { key: 'profit_per_batch', label: 'Profit/5-Batch',    fmt: 'profit' },
+    { key: 'margin_pct',       label: 'Margin %',          fmt: 'pct' },
+  ];
+
+  const prospCols = [
+    { key: 'ore_name',          label: 'Ore',               fmt: 'item' },
+    { key: 'quality_tier',      label: 'Tier' },
+    { key: 'ore_price',         label: 'Ore Buy Price',     fmt: 'gold' },
+    { key: 'cost_per_batch',    label: 'Cost/Prospect',     fmt: 'gold' },
+    { key: 'expected_revenue',  label: 'Expected Revenue',  fmt: 'gold' },
+    { key: 'profit_per_batch',  label: 'Profit/Prospect',   fmt: 'profit' },
+    { key: 'margin_pct',        label: 'Margin %',          fmt: 'pct' },
+  ];
+
+  // Adapt itemCell for crafting rows (use herb_name / ore_name as display)
+  function craftItemCell(row) {
+    const name = row.herb_name || row.ore_name || '—';
+    const qt   = row.quality_tier || '';
+    return name + (qt ? ` <span class="qt qt-${qt}">${qt}</span>` : '');
+  }
+
+  function craftTableHTML(rows, cols) {
+    if (!rows.length) return '<div style="padding:24px;color:var(--muted)">No data — Live AH may not be populated for these items.</div>';
+    const thead = cols.map(c => `<th>${c.label}</th>`).join('');
+    const tbody = rows.map(row => {
+      const profit = row.profit_per_herb ?? row.profit_per_batch ?? 0;
+      const rc = profit > 0 ? 'row-green' : profit < -1 ? 'row-red' : '';
+      const cells = cols.map(c => {
+        const v = row[c.key];
+        if (c.fmt === 'item') return `<td>${craftItemCell(row)}</td>`;
+        if (c.fmt === 'gold') return `<td>${fmt_g(v)}</td>`;
+        if (c.fmt === 'pct')  {
+          if (v == null) return '<td class="muted">—</td>';
+          return `<td class="${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${v.toFixed(1)}%</td>`;
+        }
+        if (c.fmt === 'profit') {
+          if (v == null) return '<td class="muted">—</td>';
+          return `<td class="${v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'}">${(v >= 0 ? '+' : '') + fmt_g(v)}</td>`;
+        }
+        return `<td>${v ?? '—'}</td>`;
+      }).join('');
+      return `<tr class="${rc}">${cells}</tr>`;
+    }).join('');
+    return `<div class="table-wrap"><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
+  }
+
+  const millProfit  = milling.filter(r => r.profit_per_herb > 0).length;
+  const prospProfit = prospecting.filter(r => r.profit_per_batch > 0).length;
+
+  container.innerHTML = `
+    <div style="padding:16px 28px 4px">
+      <div style="font-size:1rem;font-weight:600;color:var(--yellow);margin-bottom:4px;">
+        ⚗ Milling Opportunities
+        <span style="font-size:.8rem;font-weight:400;color:var(--muted);margin-left:8px;">
+          Yield: 1 pigment/herb avg · 5 herbs/cast · 5% AH cut on sells · Assumptions documented in milling_analysis.py
+        </span>
+      </div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">
+        🟢 Green = profitable · 🔴 Red = loss · ${millProfit} of ${milling.length} herbs profitable
+      </div>
+    </div>
+    ${craftTableHTML(milling, millingCols)}
+    <div style="padding:20px 28px 4px">
+      <div style="font-size:1rem;font-weight:600;color:var(--yellow);margin-bottom:4px;">
+        💎 Prospecting Opportunities
+        <span style="font-size:.8rem;font-weight:400;color:var(--muted);margin-left:8px;">
+          5 ore/prospect · Drop rates are estimated from TWW/DF patterns · Assumptions in prospecting_analysis.py
+        </span>
+      </div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">
+        🟢 Green = profitable · 🔴 Red = loss · ${prospProfit} of ${prospecting.length} ores profitable
+      </div>
+    </div>
+    ${craftTableHTML(prospecting, prospCols)}`;
+}
+
+// ---- Restock Suggestions tab ----
+function initRestock() {
+  const container = g('restock');
+  const rows = DATA.restock || [];
+
+  if (!rows.length) {
+    container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted)">No restock opportunities found. Bankarang may have recent buys for all her top sellers, or not enough sales history yet.</div>';
+    return;
+  }
+
+  const cols = [
+    { key: 'item_name',        label: 'Item',            num: false, format: 'item' },
+    { key: 'live_ah_min',      label: 'Live AH Min',     num: true,  fmt: 'gold' },
+    { key: 'avg_buy',          label: 'Avg Buy (hist)',  num: true,  fmt: 'gold' },
+    { key: 'avg_sell',         label: 'Avg Sell (hist)', num: true,  fmt: 'gold' },
+    { key: 'price_vs_avg',     label: 'vs Avg Buy',      num: true,  fmt: 'pct_diff' },
+    { key: 'sell_count',       label: 'Sell Count',      num: true },
+    { key: 'net_margin',       label: 'Net Margin/Unit', num: true,  fmt: 'profit' },
+    { key: 'estimated_profit', label: 'Est Profit/Day',  num: true,  fmt: 'profit' },
+    { key: 'priority',         label: 'Priority',        num: false, fmt: 'priority' },
+  ];
+
+  const thead = cols.map(c => `<th>${c.label}</th>`).join('');
+  const tbody = rows.map(row => {
+    const rc = row.net_margin > 0 ? 'row-green' : 'row-red';
+    const cells = cols.map(c => {
+      const v = row[c.key];
+      switch (c.fmt) {
+        case 'item':     return `<td>${itemCell(row)}</td>`;
+        case 'gold':     return `<td>${fmt_g(v)}</td>`;
+        case 'profit': {
+          if (v == null) return '<td class="muted">—</td>';
+          return `<td class="${v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'}">${(v >= 0 ? '+' : '') + fmt_g(v)}</td>`;
+        }
+        case 'pct_diff': {
+          if (v == null) return '<td class="muted">—</td>';
+          const cls = v < 0 ? 'pos' : 'neg';  // negative = cheaper than avg buy = good
+          return `<td class="${cls}">${v >= 0 ? '+' : ''}${v.toFixed(1)}%</td>`;
+        }
+        case 'priority': {
+          const col = v === 'High' ? 'var(--green)' : v === 'Medium' ? 'var(--yellow)' : 'var(--muted)';
+          return `<td style="color:${col};font-weight:600">${v}</td>`;
+        }
+        default: return `<td>${v ?? '—'}</td>`;
+      }
+    }).join('');
+    return `<tr class="${rc}">${cells}</tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="padding:12px 28px 8px;font-size:.85rem;color:var(--muted)">
+      Based on Bankarang's flipping history · Items she has sold ≥3 times but has not bought in the last 7 days · Only shown when Live AH Min &lt; her historical avg buy × 90%
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr>${thead}</tr></thead>
+      <tbody>${tbody}</tbody>
+    </table></div>`;
+}
+
 // ---- Boot ----
 initMeta();
 initCards();
@@ -1613,6 +1810,8 @@ initArbitrage();
 initRepricing();
 initStopBuying();
 initReagents();
+initCrafting();
+initRestock();
 initLiveAH();
 initTopOpportunities();
 </script>
