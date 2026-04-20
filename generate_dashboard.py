@@ -173,6 +173,10 @@ def build_live_arbitrage(names: dict) -> list[dict]:
         if blizzard_api.is_excluded_item(iid):
             continue
 
+        # Suppress items with no resolved name
+        if str(iid) not in names:
+            continue
+
         prices = {r: realm_data[r][(iid, qt)]["min_price"] for r in realms_present}
         buy_realm  = min(prices, key=prices.__getitem__)
         sell_realm = max(prices, key=prices.__getitem__)
@@ -203,7 +207,7 @@ def build_live_arbitrage(names: dict) -> list[dict]:
         if spread_pct < MIN_SPREAD_PCT:
             continue
 
-        name = names.get(str(iid), f"Unknown Item ({iid})")
+        name = names[str(iid)]
 
         opps.append({
             "item_id":        iid,
@@ -459,7 +463,7 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
 
     ban_prices = _bankarang_prices(records)
 
-    by_realm: dict[str, list[dict]] = {}
+    raw_by_realm: dict[str, list[dict]] = {}
     total_counts: dict[str, int] = {}
     last_updated = None
 
@@ -467,7 +471,7 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
         try:
             snapshots = live_ah_db.get_all_latest_snapshots(realm)
         except Exception:
-            by_realm[realm] = []
+            raw_by_realm[realm] = []
             total_counts[realm] = 0
             continue
 
@@ -488,7 +492,11 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
             if blizzard_api.is_excluded_item(iid):
                 continue
 
-            name     = names.get(str(iid), f"Unknown Item ({iid})")
+            # Suppress items with no resolved name — unknown IDs are noise
+            if str(iid) not in names:
+                continue
+
+            name     = names[str(iid)]
             live_min = snap["min_price"]
             live_avg = snap["avg_price"]
 
@@ -525,8 +533,28 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
                 "last_updated":         ts,
             })
 
-        # Sort: Malfurion by absolute spread desc (most actionable first)
-        #       other realms by listing_count desc (most active market first)
+        raw_by_realm[realm] = rows
+
+    # Compute multi-realm average min price per (item_id, quality_tier)
+    # Used for cross-realm color coding on non-Malfurion tabs.
+    from collections import defaultdict
+    _key_mins: dict[tuple, list[float]] = defaultdict(list)
+    for realm_rows in raw_by_realm.values():
+        for row in realm_rows:
+            _key_mins[(row["item_id"], row["quality_tier"])].append(row["live_ah_min"])
+    multi_realm_avg: dict[tuple, float] = {
+        k: round(sum(v) / len(v), 4) for k, v in _key_mins.items() if len(v) > 1
+    }
+
+    by_realm: dict[str, list[dict]] = {}
+    for realm in ALL_REALMS:
+        rows = raw_by_realm.get(realm, [])
+        # Attach multi-realm average for cross-realm coloring
+        for row in rows:
+            avg = multi_realm_avg.get((row["item_id"], row["quality_tier"]))
+            row["multi_realm_avg_min"] = avg
+
+        # Sort: Malfurion by absolute spread desc, others by listing_count desc
         if realm == PRIMARY_REALM:
             rows.sort(
                 key=lambda r: (abs(r["spread_pct"]) if r["spread_pct"] is not None else 0),
@@ -552,32 +580,44 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
 
 def _prefetch_dashboard_names(existing: dict) -> None:
     """
-    Pre-populate item_names.json with names for Midnight-era items in live_ah.db
-    that are not yet cached. Fetches at most 200 new names per run (rest deferred).
+    Pre-populate item_names.json with names for items in live_ah.db that are not
+    yet cached. Fetches at most 200 new Midnight names + 50 legacy names per run.
     Called once per generate_dashboard run so all tabs show real names.
     """
     try:
         live_ah_db.init_db()
-        unknown_ids: list[int] = []
+        midnight_ids: list[int] = []
+        legacy_ids:   list[int] = []
         for realm in ALL_REALMS:
             for snap in live_ah_db.get_all_latest_snapshots(realm):
                 iid = snap["item_id"]
-                if iid >= MIDNIGHT_MIN_ID and str(iid) not in existing:
-                    unknown_ids.append(iid)
-        # Deduplicate while preserving order
-        seen: set[int] = set()
-        deduped = []
-        for iid in unknown_ids:
-            if iid not in seen:
-                seen.add(iid)
-                deduped.append(iid)
+                if str(iid) not in existing:
+                    if iid >= MIDNIGHT_MIN_ID:
+                        midnight_ids.append(iid)
+                    else:
+                        legacy_ids.append(iid)
 
-        if deduped:
-            blizzard_api.prefetch_item_names(deduped, max_new=200, delay=0.05)
+        def _dedup(ids: list[int]) -> list[int]:
+            seen: set[int] = set()
+            result = []
+            for iid in ids:
+                if iid not in seen:
+                    seen.add(iid)
+                    result.append(iid)
+            return result
+
+        rebuilt = False
+        if midnight_ids:
+            blizzard_api.prefetch_item_names(_dedup(midnight_ids), max_new=200, delay=0.05)
+            rebuilt = True
+        if legacy_ids:
+            # Resolve pre-Midnight items with unknown names (e.g. Pet Cages, old world drops)
+            blizzard_api.prefetch_item_names(_dedup(legacy_ids), max_new=50, delay=0.05)
+            rebuilt = True
+        if rebuilt:
             quality_tiers.rebuild_tier_map()
 
         # Backfill class info for items already named but lacking class data.
-        # Covers items fetched before class tracking was added (200/run cap).
         all_live_ids: list[int] = []
         for realm in ALL_REALMS:
             for snap in live_ah_db.get_all_latest_snapshots(realm):
@@ -621,13 +661,16 @@ def build_data() -> dict:
     reagent_rows      = build_reagents(records, names, market_values, live_malfurion_dict)
     live_ah           = build_live_ah_data(records, names)
 
-    enrich = lambda s: {**s, "item_name": item_name(s["item_id"], names),
-                        "quality_tier": s.get("quality_tier", "")}
+    def enrich(s: dict) -> dict | None:
+        iid = s["item_id"]
+        if str(iid) not in names:
+            return None  # suppress unresolved items from all tabs
+        return {**s, "item_name": names[str(iid)], "quality_tier": s.get("quality_tier", "")}
 
-    profit_rows      = [enrich(s) for s in profit_stats]
+    profit_rows      = [r for r in (enrich(s) for s in profit_stats)      if r is not None]
     arb_rows         = arbitrage   # already contains item_name from build_live_arbitrage
-    reprice_rows     = [enrich(r) for r in repricing]
-    stop_buying_rows = [enrich(s) for s in stop_buying_stats]
+    reprice_rows     = [r for r in (enrich(r) for r in repricing)          if r is not None]
+    stop_buying_rows = [r for r in (enrich(s) for s in stop_buying_stats)  if r is not None]
 
     profitable  = [s for s in profit_rows if s["profit_per_item"] > 0]
     best_flip   = profit_rows[0]      if profit_rows      else None
@@ -1344,15 +1387,19 @@ function initLiveAH() {
   ];
 
   function rowBg(row) {
-    const sp = row.spread_pct;
-    if (sp == null) return '';
-    // Green: live AH below Bankarang avg buy (flip opportunity)
-    const liveMin  = row.live_ah_min;
-    const avgBuy   = row.bankarang_avg_buy;
-    const avgSell  = row.bankarang_avg_sell;
+    const liveMin = row.live_ah_min;
+    const avgBuy  = row.bankarang_avg_buy;
+    const avgSell = row.bankarang_avg_sell;
+    // Malfurion: Bankarang-based coloring
     if (avgBuy  != null && liveMin < avgBuy  * 0.80) return 'row-green';
     if (avgSell != null && liveMin > avgSell * 1.20) return 'row-red';
-    if (sp > 0) return 'row-yellow';
+    if (row.spread_pct != null && row.spread_pct > 0) return 'row-yellow';
+    // Non-Malfurion: cross-realm average coloring
+    const mrAvg = row.multi_realm_avg_min;
+    if (mrAvg != null && mrAvg > 0) {
+      if (liveMin < mrAvg * 0.80) return 'row-green';
+      if (liveMin > mrAvg * 1.20) return 'row-red';
+    }
     return '';
   }
 
@@ -1416,7 +1463,7 @@ function initLiveAH() {
     const dispCount  = (byRealm[activeRealm] || []).length;
     const totalCount = totals[activeRealm] || dispCount;
     const note = activeRealm !== 'Malfurion'
-      ? `<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">ℹ Showing top ${dispCount} of ${totalCount.toLocaleString()} items by listing volume · Bankarang Buy/Sell columns are Malfurion-only</div>`
+      ? `<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">🟢 Green = cheapest across realms (&gt;20% below 5-realm avg) · 🔴 Red = most expensive (&gt;20% above avg) · Showing top ${dispCount} of ${totalCount.toLocaleString()} items by listing volume · Bankarang Buy/Sell columns are Malfurion-only</div>`
       : `<div style="padding:8px 14px;font-size:.8rem;color:var(--muted)">🟢 Green = live price &gt;20% below Bankarang avg buy · 🔴 Red = live price &gt;20% above Bankarang avg sell · Showing ${dispCount} items with Bankarang history (of ${totalCount.toLocaleString()} on AH)</div>`;
 
     return `${note}<div class="table-wrap"><table>
