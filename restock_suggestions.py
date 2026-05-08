@@ -20,6 +20,8 @@ Logic:
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 
+import bankarang_pricing
+
 # ─────────────────────────────────────────────────────────
 # Configurable constants
 # ─────────────────────────────────────────────────────────
@@ -104,7 +106,13 @@ def build_restock_suggestions(
 
     for key, sale_list in sales.items():
         iid, qt = key
-        if len(sale_list) < MIN_SALE_COUNT:
+
+        # Recency-weighted sell stats (last 28 days, weighted 1.0/0.5/0.25).
+        # If Bankarang has no sales in the last 28 days, skip — without recent
+        # proof the price holds, this isn't a sell opportunity.
+        sell_stats = bankarang_pricing.weighted_avg(sale_list, now=now)
+        recent_sell_avg = sell_stats["recent_avg"]
+        if recent_sell_avg is None or sell_stats["recent_txns"] < MIN_SALE_COUNT:
             continue
 
         # Skip if Bankarang has bought this recently (probably already restocked)
@@ -116,22 +124,14 @@ def build_restock_suggestions(
         if live_min is None:
             continue
 
-        # Compute historical sell average
-        total_sell_gold = sum(r["price_gold"] for r in sale_list)
-        total_sell_qty  = sum(r["quantity"]    for r in sale_list)
-        avg_sell = total_sell_gold / total_sell_qty if total_sell_qty else 0
+        avg_sell = recent_sell_avg
 
-        if avg_sell <= 0:
-            continue
-
-        # Compute historical buy average if available
+        # Recency-weighted buy average if available
         buy_list = buys.get(key, [])
-        if buy_list:
-            total_buy_gold = sum(r["price_gold"] for r in buy_list)
-            total_buy_qty  = sum(r["quantity"]    for r in buy_list)
-            avg_buy = total_buy_gold / total_buy_qty if total_buy_qty else None
-        else:
-            avg_buy = None
+        buy_stats = bankarang_pricing.weighted_avg(buy_list, now=now)
+        avg_buy           = buy_stats["recent_avg"]
+        avg_buy_alltime   = buy_stats["alltime_avg"]
+        avg_sell_alltime  = sell_stats["alltime_avg"]
 
         # Price check: if buy history exists, use it as the price anchor.
         # Otherwise fall back to requiring live_min to be well below avg_sell
@@ -145,8 +145,11 @@ def build_restock_suggestions(
             if net_if_bought_now / avg_sell < MIN_SELL_MARGIN:
                 continue
 
-        sell_count     = len(sale_list)
-        sell_frequency = sell_count / obs_days  # sales per day
+        sell_count     = sell_stats["recent_txns"]
+        # Sales-per-day frequency uses the recency window (28d) as the denominator
+        # so the rate reflects current pace, not historical average over months.
+        recency_window_days = min(28.0, obs_days)
+        sell_frequency = sell_count / recency_window_days  # sales per day
 
         # Estimated profit: per-unit margin × daily sell rate
         net_margin          = avg_sell * (1.0 - 0.05) - live_min  # 5% cut on sell side
@@ -168,9 +171,13 @@ def build_restock_suggestions(
             "quality_tier":      qt,
             "item_name":         name,
             "live_ah_min":       round(live_min, 4),
-            "avg_buy":           round(avg_buy, 4) if avg_buy is not None else None,
+            "avg_buy":           round(avg_buy, 4)            if avg_buy is not None         else None,
             "avg_sell":          round(avg_sell, 4),
+            "avg_buy_alltime":   round(avg_buy_alltime, 4)    if avg_buy_alltime is not None else None,
+            "avg_sell_alltime":  round(avg_sell_alltime, 4)   if avg_sell_alltime is not None else None,
             "sell_count":        sell_count,
+            "sell_alltime_count": sell_stats["alltime_txns"],
+            "sell_days_since":   sell_stats["days_since"],
             "sell_frequency":    round(sell_frequency, 3),
             "net_margin":        round(net_margin, 4),
             "estimated_profit":  round(estimated_profit, 4),

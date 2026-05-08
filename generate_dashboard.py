@@ -14,6 +14,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+import bankarang_pricing
 import blizzard_api
 import live_ah_db
 import milling_analysis
@@ -95,43 +96,52 @@ def item_name(iid: int, cache: dict) -> str:
 
 
 def build_profit_stats(records: list[dict]) -> list[dict]:
-    # Bankarang-only filter: other characters buy for crafting, not resale.
-    buys  = [r for r in records if r.get("realm") == PRIMARY_REALM
-             and r.get("type") == "Buys"  and r.get("source") == "Auction"
-             and r.get("player") == FLIPPER]
-    sales = [r for r in records if r.get("realm") == PRIMARY_REALM
-             and r.get("type") == "Sales" and r.get("source") == "Auction"
-             and r.get("player") == FLIPPER]
+    """
+    Top Opportunities — Bankarang flip margins keyed by (item_id, quality_tier).
 
-    buy_acc  = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
-    sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
+    Uses recency-weighted averages (last 28 days) as the primary profit
+    signal; both buy and sell sides must have at least one transaction in the
+    weighting window.  All-time averages are kept for the dashboard display.
 
-    for r in buys:
-        key = (r["item_id"], r.get("quality_tier", ""))
-        d = buy_acc[key]
-        d["gold"] += r["price_gold"]; d["qty"] += r["quantity"]; d["txns"] += 1
-
-    for r in sales:
-        key = (r["item_id"], r.get("quality_tier", ""))
-        d = sell_acc[key]
-        d["gold"] += r["price_gold"]; d["qty"] += r["quantity"]; d["txns"] += 1
+    Items with no recent (≤28d) sales are excluded — without recent sales
+    activity Bankarang has no proof the historical price still holds.
+    """
+    weighted = bankarang_pricing.bankarang_prices_weighted(
+        records, flipper=FLIPPER, realm=PRIMARY_REALM,
+    )
 
     out = []
-    for key in set(buy_acc) & set(sell_acc):
+    for key, w in weighted.items():
         iid, qt = key
         if blizzard_api.is_excluded_item(iid):
             continue
-        b, s = buy_acc[key], sell_acc[key]
-        avg_buy  = b["gold"] / b["qty"]
-        avg_sell = s["gold"] / s["qty"]
-        profit   = avg_sell - avg_buy
-        margin   = (profit / avg_buy * 100) if avg_buy else 0.0
+        avg_sell_recent = w["sell_recent_avg"]
+        # Require recent sells: if Bankarang hasn't sold in 28 days, the
+        # historical sell price is unproven — don't surface as an opportunity.
+        if avg_sell_recent is None:
+            continue
+        # Buy side: prefer recent, fall back to all-time as the cost basis
+        # (we paid that price historically; nothing more recent to anchor on).
+        avg_buy_recent  = w["buy_recent_avg"] or w["buy_alltime_avg"]
+        if avg_buy_recent is None:
+            continue
+        profit = avg_sell_recent - avg_buy_recent
+        margin = (profit / avg_buy_recent * 100) if avg_buy_recent else 0.0
         out.append({
             "item_id": iid, "quality_tier": qt,
-            "avg_buy": avg_buy, "avg_sell": avg_sell,
-            "profit_per_item": profit, "margin_pct": margin,
-            "buy_txns": b["txns"], "sell_txns": s["txns"],
-            "total_volume": b["txns"] + s["txns"],
+            "avg_buy":  avg_buy_recent,
+            "avg_sell": avg_sell_recent,
+            "avg_buy_alltime":  w["buy_alltime_avg"],
+            "avg_sell_alltime": w["sell_alltime_avg"],
+            "profit_per_item":  profit,
+            "margin_pct":       margin,
+            "buy_txns":          w["buy_recent_txns"],
+            "sell_txns":         w["sell_recent_txns"],
+            "buy_alltime_txns":  w["buy_alltime_txns"],
+            "sell_alltime_txns": w["sell_alltime_txns"],
+            "buy_days_since":    w["buy_days_since"],
+            "sell_days_since":   w["sell_days_since"],
+            "total_volume": w["buy_recent_txns"] + w["sell_recent_txns"],
         })
 
     out.sort(key=lambda x: x["profit_per_item"], reverse=True)
@@ -391,35 +401,34 @@ def build_reagents(records: list[dict], names: dict,
 
 def _bankarang_prices(records: list[dict]) -> dict[tuple, dict]:
     """
-    Return {(item_id, quality_tier): {avg_buy, avg_sell, buy_txns, sell_txns}}
-    for Bankarang/Malfurion.
-    """
-    buy_acc  = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
-    sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
+    Recency-weighted Bankarang prices keyed by (item_id, quality_tier).
 
-    for r in records:
-        if r.get("realm") != PRIMARY_REALM: continue
-        if r.get("source") != "Auction":    continue
-        if r.get("player") != FLIPPER:      continue
-        key = (r["item_id"], r.get("quality_tier", ""))
-        if r.get("type") == "Buys":
-            buy_acc[key]["gold"] += r["price_gold"]
-            buy_acc[key]["qty"]  += r["quantity"]
-            buy_acc[key]["txns"] += 1
-        elif r.get("type") == "Sales":
-            sell_acc[key]["gold"] += r["price_gold"]
-            sell_acc[key]["qty"]  += r["quantity"]
-            sell_acc[key]["txns"] += 1
+    Returns the recency-weighted (last 28 days) and all-time averages plus
+    transaction counts.  See bankarang_pricing.bankarang_prices_weighted for
+    weighting details.
+
+    Legacy callers can read: avg_buy/avg_sell (recent-weighted, primary),
+    buy_alltime_avg/sell_alltime_avg (for display), buy_txns/sell_txns (recent).
+    """
+    weighted = bankarang_pricing.bankarang_prices_weighted(
+        records, flipper=FLIPPER, realm=PRIMARY_REALM
+    )
 
     out: dict[tuple, dict] = {}
-    for key in set(buy_acc) | set(sell_acc):
-        b = buy_acc.get(key)
-        s = sell_acc.get(key)
+    for key, w in weighted.items():
         out[key] = {
-            "avg_buy":   (b["gold"] / b["qty"]) if b and b["qty"] else None,
-            "avg_sell":  (s["gold"] / s["qty"]) if s and s["qty"] else None,
-            "buy_txns":  b["txns"] if b else 0,
-            "sell_txns": s["txns"] if s else 0,
+            # Primary (recency-weighted) — used for opportunity comparisons
+            "avg_buy":          w["buy_recent_avg"],
+            "avg_sell":         w["sell_recent_avg"],
+            "buy_txns":         w["buy_recent_txns"],
+            "sell_txns":        w["sell_recent_txns"],
+            # All-time (display)
+            "buy_alltime_avg":  w["buy_alltime_avg"],
+            "sell_alltime_avg": w["sell_alltime_avg"],
+            "buy_alltime_txns": w["buy_alltime_txns"],
+            "sell_alltime_txns":w["sell_alltime_txns"],
+            "buy_days_since":   w["buy_days_since"],
+            "sell_days_since":  w["sell_days_since"],
         }
     return out
 
@@ -487,6 +496,8 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
             bp   = ban_prices.get((iid, qt)) or ban_prices.get((iid, ""), {})
             avg_buy  = bp.get("avg_buy")
             avg_sell = bp.get("avg_sell")
+            avg_buy_alltime  = bp.get("buy_alltime_avg")
+            avg_sell_alltime = bp.get("sell_alltime_avg")
 
             # Malfurion: skip rows with no Bankarang history (they're just market noise)
             if realm == PRIMARY_REALM and avg_buy is None and avg_sell is None:
@@ -527,10 +538,14 @@ def build_live_ah_data(records: list[dict], names: dict) -> dict:
                 "live_ah_avg":          round(live_avg, 4),
                 "total_quantity":       snap["total_quantity"],
                 "listing_count":        snap["listing_count"],
-                "bankarang_avg_buy":    round(avg_buy, 4) if avg_buy else None,
-                "bankarang_avg_sell":   round(avg_sell, 4) if avg_sell else None,
+                "bankarang_avg_buy":           round(avg_buy, 4)         if avg_buy         else None,
+                "bankarang_avg_sell":          round(avg_sell, 4)        if avg_sell        else None,
+                "bankarang_avg_buy_alltime":   round(avg_buy_alltime, 4) if avg_buy_alltime else None,
+                "bankarang_avg_sell_alltime":  round(avg_sell_alltime, 4)if avg_sell_alltime else None,
                 "buy_txns":             bp.get("buy_txns", 0),
                 "sell_txns":            bp.get("sell_txns", 0),
+                "sell_alltime_txns":    bp.get("sell_alltime_txns", 0),
+                "buy_alltime_txns":     bp.get("buy_alltime_txns", 0),
                 "spread_pct":           spread_pct,
                 "net_if_sold_at_min":   net_if_sold_at_min,
                 "last_updated":         ts,
@@ -1008,6 +1023,7 @@ function makeTable(containerId, columns, rows, colorKey, colorType) {
         if (c.format === 'src')    { display = raw ? `<span class="muted">${raw}</span>` : ''; }
         if (c.format === 'fail')   { display = fmt_pct(raw);  cc = cellClass(raw, 'fail'); }
         if (c.format === 'opt_g')  { display = raw != null ? fmt_g(raw) : '<span class="muted">—</span>'; }
+        if (c.format === 'gold_opt') { display = raw != null ? fmt_g(raw) : '<span class="muted">—</span>'; }
         if (c.format === 'item')   { display = itemCell(row); }
         return `<td${cc ? ` class="${cc}"` : ''}>${display}</td>`;
       }).join('');
@@ -1095,13 +1111,15 @@ function initTabs() {
 // ---- Profit table ----
 function initProfit() {
   const cols = [
-    { key: 'item_name',       label: 'Item',          num: false, format: 'item' },
-    { key: 'avg_buy',         label: 'Avg Buy',       num: true,  format: 'gold' },
-    { key: 'avg_sell',        label: 'Avg Sell',      num: true,  format: 'gold' },
-    { key: 'profit_per_item', label: 'Profit / Item', num: true,  format: 'gold' },
-    { key: 'margin_pct',      label: 'Margin %',      num: true,  format: 'pct' },
-    { key: 'buy_txns',        label: 'Buy Txns',      num: true,  format: 'int' },
-    { key: 'sell_txns',       label: 'Sell Txns',     num: true,  format: 'int' },
+    { key: 'item_name',         label: 'Item',                 num: false, format: 'item' },
+    { key: 'avg_buy',           label: 'Recent Buy (≤28d)',    num: true,  format: 'gold',     tip: 'Recency-weighted buy avg over last 28 days (1.0/0.5/0.25 weights for ≤7/14/28 days)' },
+    { key: 'avg_sell',          label: 'Recent Sell (≤28d)',   num: true,  format: 'gold',     tip: 'Recency-weighted sell avg over last 28 days — primary signal for opportunities' },
+    { key: 'avg_buy_alltime',   label: 'All-time Buy',         num: true,  format: 'gold_opt' },
+    { key: 'avg_sell_alltime',  label: 'All-time Sell',        num: true,  format: 'gold_opt' },
+    { key: 'profit_per_item',   label: 'Profit / Item',        num: true,  format: 'gold' },
+    { key: 'margin_pct',        label: 'Margin %',             num: true,  format: 'pct' },
+    { key: 'buy_txns',          label: 'Buy Txns ≤28d',        num: true,  format: 'int' },
+    { key: 'sell_txns',         label: 'Sell Txns ≤28d',       num: true,  format: 'int' },
   ];
   makeTable('profit', cols, DATA.profit, 'margin_pct', 'margin');
 }
@@ -1378,15 +1396,17 @@ function initLiveAH() {
   }
 
   let activeRealm = realms[0];
-  let sortCol = 9, sortAsc = false;  // default: spread_pct desc
+  let sortCol = 11, sortAsc = false;  // default: spread_pct desc
 
   const TOOLTIPS = {
     'live_ah_min':          'Cheapest single listing currently on the AH',
     'live_ah_avg':          'Average price across all current listings',
     'total_quantity':       'Total units available across all listings',
     'listing_count':        'Number of separate auctions on the AH right now',
-    'bankarang_avg_buy':    "Bankarang's weighted average buy price (Malfurion only)",
-    'bankarang_avg_sell':   "Bankarang's weighted average sell price (Malfurion only)",
+    'bankarang_avg_buy':           "Bankarang's recency-weighted (≤28d) buy avg — primary signal",
+    'bankarang_avg_sell':          "Bankarang's recency-weighted (≤28d) sell avg — primary signal",
+    'bankarang_avg_buy_alltime':   "Bankarang's all-time buy avg (every transaction equal weight)",
+    'bankarang_avg_sell_alltime':  "Bankarang's all-time sell avg (every transaction equal weight)",
     'buy_txns':             'Number of Bankarang buy transactions',
     'spread_pct':           'Live AH vs Bankarang avg — positive = buy opportunity, negative = price above avg sell',
     'buy_at':               'Buy any listing at or below this price',
@@ -1400,9 +1420,11 @@ function initLiveAH() {
     { key: 'live_ah_avg',        label: 'Live Avg',           num: true,  fmt: 'gold' },
     { key: 'total_quantity',     label: 'Total Qty',          num: true,  fmt: 'int' },
     { key: 'listing_count',      label: 'Listings',           num: true,  fmt: 'int' },
-    { key: 'bankarang_avg_buy',  label: 'Bnkrng Buy',         num: true,  fmt: 'gold_opt' },
-    { key: 'bankarang_avg_sell', label: 'Bnkrng Sell',        num: true,  fmt: 'gold_opt' },
-    { key: 'buy_txns',           label: 'Buy Txns',           num: true,  fmt: 'int_opt' },
+    { key: 'bankarang_avg_buy',          label: 'Bnkrng Buy ≤28d',    num: true,  fmt: 'gold_opt' },
+    { key: 'bankarang_avg_sell',         label: 'Bnkrng Sell ≤28d',   num: true,  fmt: 'gold_opt' },
+    { key: 'bankarang_avg_buy_alltime',  label: 'Bnkrng Buy (all)',   num: true,  fmt: 'gold_opt' },
+    { key: 'bankarang_avg_sell_alltime', label: 'Bnkrng Sell (all)',  num: true,  fmt: 'gold_opt' },
+    { key: 'buy_txns',                   label: 'Buy Txns ≤28d',      num: true,  fmt: 'int_opt' },
     { key: 'spread_pct',         label: 'Spread %',           num: true,  fmt: 'spread' },
     { key: 'buy_at',             label: 'Buy At',             num: true,  fmt: 'gold' },
     { key: 'net_if_sold_at_min', label: 'Net If Sold At Min', num: true,  fmt: 'profit_net' },
@@ -1753,15 +1775,18 @@ function initRestock() {
   }
 
   const cols = [
-    { key: 'item_name',        label: 'Item',            num: false, format: 'item' },
-    { key: 'live_ah_min',      label: 'Live AH Min',     num: true,  fmt: 'gold' },
-    { key: 'avg_buy',          label: 'Avg Buy (hist)',  num: true,  fmt: 'gold' },
-    { key: 'avg_sell',         label: 'Avg Sell (hist)', num: true,  fmt: 'gold' },
-    { key: 'price_vs_avg',     label: 'vs Avg Buy',      num: true,  fmt: 'pct_diff' },
-    { key: 'sell_count',       label: 'Sell Count',      num: true },
-    { key: 'net_margin',       label: 'Net Margin/Unit', num: true,  fmt: 'profit' },
-    { key: 'estimated_profit', label: 'Est Profit/Day',  num: true,  fmt: 'profit' },
-    { key: 'priority',         label: 'Priority',        num: false, fmt: 'priority' },
+    { key: 'item_name',           label: 'Item',                  num: false, format: 'item' },
+    { key: 'live_ah_min',         label: 'Live AH Min',           num: true,  fmt: 'gold' },
+    { key: 'avg_buy',             label: 'Recent Buy (≤28d)',     num: true,  fmt: 'gold_opt' },
+    { key: 'avg_sell',            label: 'Recent Sell (≤28d)',    num: true,  fmt: 'gold' },
+    { key: 'avg_buy_alltime',     label: 'All-time Buy',          num: true,  fmt: 'gold_opt' },
+    { key: 'avg_sell_alltime',    label: 'All-time Sell',         num: true,  fmt: 'gold_opt' },
+    { key: 'price_vs_avg',        label: 'vs Avg Buy',            num: true,  fmt: 'pct_diff' },
+    { key: 'sell_count',          label: 'Sells ≤28d',            num: true },
+    { key: 'sell_alltime_count',  label: 'Sells (all)',           num: true },
+    { key: 'net_margin',          label: 'Net Margin/Unit',       num: true,  fmt: 'profit' },
+    { key: 'estimated_profit',    label: 'Est Profit/Day',        num: true,  fmt: 'profit' },
+    { key: 'priority',            label: 'Priority',              num: false, fmt: 'priority' },
   ];
 
   const thead = cols.map(c => `<th>${c.label}</th>`).join('');
@@ -1772,6 +1797,7 @@ function initRestock() {
       switch (c.fmt) {
         case 'item':     return `<td>${itemCell(row)}</td>`;
         case 'gold':     return `<td>${fmt_g(v)}</td>`;
+        case 'gold_opt': return `<td>${v != null ? fmt_g(v) : '<span class="muted">—</span>'}</td>`;
         case 'profit': {
           if (v == null) return '<td class="muted">—</td>';
           return `<td class="${v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'}">${(v >= 0 ? '+' : '') + fmt_g(v)}</td>`;
@@ -1793,7 +1819,7 @@ function initRestock() {
 
   container.innerHTML = `
     <div style="padding:12px 28px 8px;font-size:.85rem;color:var(--muted)">
-      Based on Bankarang's flipping history · Items she has sold ≥3 times but has not bought in the last 7 days · Only shown when Live AH Min &lt; her historical avg buy × 90%
+      Based on Bankarang's flipping history · Sold ≥3 times in the last 28 days, no recent buy · Live AH Min vs her recency-weighted (≤28d) buy avg · Items with no sales in 28+ days are excluded — historical price unproven.
     </div>
     <div class="table-wrap"><table>
       <thead><tr>${thead}</tr></thead>

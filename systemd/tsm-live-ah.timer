@@ -1,0 +1,11 @@
+[Unit]
+Description=Run TSM Live AH refresh every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=tsm-live-ah.service
+
+[Install]
+WantedBy=timers.target

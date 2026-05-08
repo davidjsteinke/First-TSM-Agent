@@ -17,7 +17,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-DB_FILE = Path("/home/davidjsteinke/tsm_history.db")
+DB_FILE = Path.home() / "tsm_history.db"
 
 # Sell price must move by this fraction to be called RISING/FALLING
 TREND_THRESHOLD = 0.02       # 2%

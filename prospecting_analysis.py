@@ -2,6 +2,11 @@
 """
 Prospecting margin analysis for Midnight Jewelcrafting.
 
+Tier purity rule (enforced):
+    T1 ore → T1 gems only.  T2 ore → T2 gems only.
+    Tier-less ores (e.g. Dazzling Thorium) may map to gems of any single tier.
+    See _validate_tier_purity() for the assertion.
+
 Prospecting converts 5 ore into a random mix of gems.  The expected value of
 a prospect is the probability-weighted average gem output value minus the cost
 of 5 ores, accounting for the 5% AH cut when selling gems.
@@ -51,6 +56,10 @@ AH_CUT              = 0.05
 #   Indecipherable Eversong Diamond T1=240982 T2=240983
 # ─────────────────────────────────────────────────────────
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Helper type alias
 _GemOutput = list[tuple[int, str, float]]
 
@@ -70,9 +79,10 @@ ORE_PROSPECT_MAP: dict[int, tuple[str, str, _GemOutput]] = {
     # ── Refulgent Copper Ore T2 (item 237361) ──────────────────────────────
     # T2 copper; fewer junk, better garnet yields.
     # ASSUMED rates based on TWW T1-equivalent T2 quality.
+    # All gem outputs T2 — tier purity enforced.
     237361: ("Refulgent Copper Ore", "T2", [
-        (242788, "T1", 0.6),   # Duskshrouded Stone T1 (~3g)
-        (243602, "T2", 0.4),   # Radiant Shard T2 (~5g)
+        (242789, "T2", 0.6),   # Duskshrouded Stone T2 (~3g)
+        (243603, "T2", 0.4),   # Radiant Shard T2 (~5g)
         (240872, "T2", 0.5),   # Deadly Garnet T2 (~428g)
         (240876, "T2", 0.3),   # Masterful Garnet T2 (~388g)
         (240878, "T2", 0.2),   # Versatile Garnet T2 (~364g)
@@ -151,6 +161,25 @@ ORE_PROSPECT_MAP: dict[int, tuple[str, str, _GemOutput]] = {
 # Analysis
 # ─────────────────────────────────────────────────────────
 
+def _validate_tier_purity() -> None:
+    """
+    Tier purity rule: every gem output of a tiered ore MUST share the ore's tier.
+    Tier-less ores (e.g. Dazzling Thorium "") are allowed to map to any single tier.
+    """
+    for ore_id, (ore_name, ore_tier, gem_outputs) in ORE_PROSPECT_MAP.items():
+        if ore_tier == "":
+            continue  # tier-less ore: any tier OK
+        for gem_id, gem_tier, _ in gem_outputs:
+            if gem_tier != ore_tier:
+                raise ValueError(
+                    f"Prospecting tier mismatch: {ore_name} {ore_tier} ore "
+                    f"({ore_id}) → gem {gem_id} {gem_tier} (must be {ore_tier})"
+                )
+
+
+_validate_tier_purity()
+
+
 def build_prospecting_analysis(
     prices: dict[tuple[int, str], float],
 ) -> list[dict]:
@@ -166,7 +195,9 @@ def build_prospecting_analysis(
     results = []
 
     for ore_id, (ore_name, ore_tier, gem_outputs) in ORE_PROSPECT_MAP.items():
-        ore_price = prices.get((ore_id, ore_tier))
+        ore_key = (ore_id, ore_tier)
+        ore_price = prices.get(ore_key)
+        logger.info(f"[prospect] {ore_name} {ore_tier}: ore {ore_key}={ore_price}g")
         if ore_price is None:
             continue
 
@@ -178,7 +209,18 @@ def build_prospecting_analysis(
         any_gem_priced = False
 
         for gem_id, gem_tier, avg_qty in gem_outputs:
-            gem_price = prices.get((gem_id, gem_tier))
+            # Tier-purity assertion (per-call defence-in-depth on top of the
+            # module-load validation above).
+            assert ore_tier == "" or gem_tier == ore_tier, (
+                f"Cross-tier prospecting lookup: ore {ore_id}/{ore_tier} "
+                f"→ gem {gem_id}/{gem_tier}"
+            )
+            gem_key = (gem_id, gem_tier)
+            gem_price = prices.get(gem_key)
+            logger.info(
+                f"[prospect]   gem {gem_key} avg_qty={avg_qty} "
+                f"price={gem_price}g"
+            )
             if gem_price is None:
                 continue
             any_gem_priced = True

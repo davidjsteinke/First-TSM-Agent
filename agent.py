@@ -8,11 +8,12 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+import bankarang_pricing
 import price_history
 import blizzard_api
 
-DATA_FILE = Path("/home/davidjsteinke/tsm_data.json")
-REPORT_FILE = Path("/home/davidjsteinke/report.txt")
+DATA_FILE = Path.home() / "tsm_data.json"
+REPORT_FILE = Path(__file__).parent / "report.txt"
 
 HIGH_MARGIN_THRESHOLD = 20.0  # percent
 PRIMARY_REALM = "Malfurion"
@@ -93,61 +94,59 @@ def partition(records: list[dict]) -> dict:
 def build_item_stats(buys: list[dict], sales: list[dict]) -> dict:
     """
     For each item_id appearing in BOTH buys and sales (Auction source only),
-    compute aggregate pricing and profit metrics.
+    compute pricing and profit metrics using BOTH:
 
-    price_gold in the data is the TOTAL for the transaction.
-    Unit price = price_gold / quantity.
-    We weight averages by quantity so bulk transactions count fairly.
+      - recency-weighted average (last 28 days; weights 1.0/0.5/0.25)
+        — used as the primary profit signal
+      - all-time average — kept for context/display
+
+    Items with no recent (≤28d) sales OR no recent buys are excluded:
+    without recent activity, historical averages no longer reflect the
+    current market.
     """
-    # Filter to Auction only (exclude Vendor, etc.)
     auction_buys  = [r for r in buys  if r.get("source") == "Auction"]
     auction_sales = [r for r in sales if r.get("source") == "Auction"]
 
-    # Accumulate weighted sums per item_id
-    buy_data: dict[int, dict]  = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
-    sell_data: dict[int, dict] = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
-
+    by_iid_buys:  dict[int, list[dict]] = defaultdict(list)
+    by_iid_sales: dict[int, list[dict]] = defaultdict(list)
     for r in auction_buys:
-        iid = r["item_id"]
-        buy_data[iid]["gold"] += r["price_gold"]
-        buy_data[iid]["qty"]  += r["quantity"]
-        buy_data[iid]["txns"] += 1
-
+        by_iid_buys[r["item_id"]].append(r)
     for r in auction_sales:
-        iid = r["item_id"]
-        sell_data[iid]["gold"] += r["price_gold"]
-        sell_data[iid]["qty"]  += r["quantity"]
-        sell_data[iid]["txns"] += 1
+        by_iid_sales[r["item_id"]].append(r)
 
-    # Only items present in BOTH
-    common_ids = set(buy_data) & set(sell_data)
+    common_ids = set(by_iid_buys) & set(by_iid_sales)
 
     stats = []
     for iid in common_ids:
-        b = buy_data[iid]
-        s = sell_data[iid]
+        b = bankarang_pricing.weighted_avg(by_iid_buys[iid])
+        s = bankarang_pricing.weighted_avg(by_iid_sales[iid])
 
-        avg_buy  = b["gold"] / b["qty"]   # weighted avg per-item buy price
-        avg_sell = s["gold"] / s["qty"]   # weighted avg per-item sell price
-
+        # Require a recent sell; buy may fall back to all-time cost basis.
+        if s["recent_avg"] is None:
+            continue
+        avg_buy  = b["recent_avg"] or b["alltime_avg"]
+        if avg_buy is None:
+            continue
+        avg_sell = s["recent_avg"]
         profit_per_item = avg_sell - avg_buy
         margin_pct = (profit_per_item / avg_buy * 100) if avg_buy else 0.0
-        total_volume = b["txns"] + s["txns"]
+        total_volume = b["recent_txns"] + s["recent_txns"]
 
         stats.append({
-            "item_id":        iid,
-            "avg_buy":        avg_buy,
-            "avg_sell":       avg_sell,
-            "profit_per_item": profit_per_item,
-            "margin_pct":     margin_pct,
-            "buy_txns":       b["txns"],
-            "sell_txns":      s["txns"],
-            "buy_qty":        b["qty"],
-            "sell_qty":       s["qty"],
-            "total_volume":   total_volume,
+            "item_id":          iid,
+            "avg_buy":          avg_buy,
+            "avg_sell":         avg_sell,
+            "avg_buy_alltime":  b["alltime_avg"],
+            "avg_sell_alltime": s["alltime_avg"],
+            "profit_per_item":  profit_per_item,
+            "margin_pct":       margin_pct,
+            "buy_txns":          b["recent_txns"],
+            "sell_txns":         s["recent_txns"],
+            "buy_alltime_txns":  b["alltime_txns"],
+            "sell_alltime_txns": s["alltime_txns"],
+            "total_volume":      total_volume,
         })
 
-    # Rank by absolute gold profit per item (descending)
     stats.sort(key=lambda x: x["profit_per_item"], reverse=True)
     return stats
 

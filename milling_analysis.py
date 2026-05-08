@@ -17,7 +17,10 @@ Midnight milling mechanics (documented assumptions):
 To update yield when character specialisation is added, change PIGMENT_YIELD.
 """
 
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────
 # Configurable constants
@@ -75,6 +78,19 @@ PIGMENT_NAMES: dict[int, str] = {
 # Analysis
 # ─────────────────────────────────────────────────────────
 
+def _validate_tier_purity() -> None:
+    """Assert HERB_PIGMENT_MAP entries never cross quality tiers."""
+    for herb_id, (herb_name, herb_tier, pigment_id, pig_tier) in HERB_PIGMENT_MAP.items():
+        if herb_tier != pig_tier:
+            raise ValueError(
+                f"Milling tier mismatch: {herb_name} herb {herb_id} {herb_tier} "
+                f"→ pigment {pigment_id} {pig_tier} (must match)"
+            )
+
+
+_validate_tier_purity()
+
+
 def build_milling_analysis(
     prices: dict[tuple[int, str], float],
 ) -> list[dict]:
@@ -90,8 +106,23 @@ def build_milling_analysis(
     results = []
 
     for herb_id, (herb_name, herb_tier, pigment_id, pig_tier) in HERB_PIGMENT_MAP.items():
-        herb_price  = prices.get((herb_id,  herb_tier))
-        pig_price   = prices.get((pigment_id, pig_tier))
+        # Hard tier-purity guarantee: T1 herb ↔ T1 pigment only, T2 ↔ T2 only.
+        # Cross-tier comparisons would invent fake margins (T1 herb at 1g vs T2
+        # pigment at 164g would show ~+15000% profit).
+        assert herb_tier == pig_tier, (
+            f"Cross-tier milling lookup attempted: herb {herb_id}/{herb_tier} "
+            f"vs pigment {pigment_id}/{pig_tier}"
+        )
+
+        herb_key    = (herb_id,    herb_tier)
+        pigment_key = (pigment_id, pig_tier)
+        herb_price  = prices.get(herb_key)
+        pig_price   = prices.get(pigment_key)
+
+        logger.info(
+            f"[milling] {herb_name} {herb_tier}: "
+            f"herb {herb_key}={herb_price}g  →  pigment {pigment_key}={pig_price}g"
+        )
 
         if herb_price is None or pig_price is None:
             continue  # skip if either side not on AH

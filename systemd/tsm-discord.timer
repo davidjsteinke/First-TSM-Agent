@@ -1,0 +1,11 @@
+[Unit]
+Description=Run TSM Discord alerts every 15 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+Unit=tsm-discord.service
+
+[Install]
+WantedBy=timers.target

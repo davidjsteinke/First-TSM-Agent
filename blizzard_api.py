@@ -3,7 +3,7 @@
 Blizzard Game Data API — item name lookup with local cache.
 
 Authenticates via client-credentials OAuth2 (no user login required).
-Credentials are read from ~/.env or environment variables.
+Credentials are read from ./.env (project root) or environment variables.
 
 Public interface:
     get_item_name(item_id: int) -> str
@@ -25,7 +25,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 _PROJECT_DIR     = Path(__file__).parent
-ENV_FILE         = Path.home() / ".env"
+ENV_FILE         = _PROJECT_DIR / ".env"
 CACHE_FILE       = _PROJECT_DIR / "item_names.json"
 ITEM_CLASS_FILE  = _PROJECT_DIR / "item_class_ids.json"
 
@@ -84,7 +84,7 @@ def _get_token() -> str:
     if not client_id or not client_secret:
         raise RuntimeError(
             "BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET must be set "
-            "(in ~/.env or environment variables)"
+            "(in ./.env or environment variables)"
         )
 
     credentials = b64encode(f"{client_id}:{client_secret}".encode()).decode()

@@ -4,19 +4,27 @@ TSM (TradeSkillMaster) SavedVariables parser.
 Extracts auction/transaction data from the Lua file and outputs clean JSON.
 """
 
+import os
 import re
 import json
 import csv
 import io
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 import quality_tiers
 
-LUA_PATH = Path(
-    "/mnt/Games/Blizzard/World of Warcraft"
-    "/_retail_/WTF/Account/QUESOMAN/SavedVariables/TradeSkillMaster.lua"
-)
+SCRIPT_DIR = Path(__file__).parent
+load_dotenv(SCRIPT_DIR / ".env")
+
+_lua_path_env = os.getenv("TSM_LUA_PATH", "").strip()
+if not _lua_path_env:
+    print("ERROR: TSM_LUA_PATH not set in .env — aborting", file=sys.stderr)
+    sys.exit(1)
+LUA_PATH = Path(_lua_path_env)
 OUTPUT_PATH = Path.home() / "tsm_data.json"
 
 # Keys that carry price + counterparty data

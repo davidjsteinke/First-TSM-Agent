@@ -32,6 +32,7 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
+import bankarang_pricing
 import blizzard_api
 import live_ah_db
 import quality_tiers
@@ -42,10 +43,11 @@ NAMES_FILE  = Path(__file__).parent / "item_names.json"
 LOG_FILE    = SCRIPT_DIR / "logs" / "agent.log"
 ENV_FILE    = SCRIPT_DIR / ".env"
 
+load_dotenv(ENV_FILE)
+
 PRIMARY_REALM   = "Malfurion"
 MIDNIGHT_MIN_ID = 236000
 MIN_PROFIT_G    = 2.0   # minimum gold profit to appear in lists
-GAMES_MOUNT     = "/mnt/Games"
 
 # ---------------------------------------------------------------------------
 # Bankarang filter — flipping analysis is Bankarang/Malfurion only.
@@ -139,7 +141,8 @@ def load_names() -> dict[str, str]:
 
 def get_mv_status(has_mv_data: bool) -> str:
     if not has_mv_data:
-        if not os.path.ismount(GAMES_MOUNT):
+        lua_path = os.getenv("TSM_LUA_PATH", "").strip()
+        if not lua_path or not Path(lua_path).exists():
             return "unmounted"
         return "no_sync"
     return "ok"
@@ -149,35 +152,14 @@ def get_mv_status(has_mv_data: bool) -> str:
 # Build buy/sell signals — layered pricing reference
 # ---------------------------------------------------------------------------
 
-def _build_bankarang_prices(records: list[dict]) -> tuple[dict[int, dict], dict[int, dict]]:
+def _build_bankarang_prices(records: list[dict]) -> dict[tuple, dict]:
     """
-    Compute Bankarang's weighted average buy and sell prices per item_id.
-    Returns (buy_acc, sell_acc) where each is {item_id: {gold, qty, txns}}.
-    Only considers Bankarang on Malfurion, Auction source — the designated flipper.
+    Recency-weighted Bankarang buy/sell prices keyed by (item_id, quality_tier).
+    See bankarang_pricing.bankarang_prices_weighted for the weighting scheme.
     """
-    buys  = [r for r in records if r.get("realm") == PRIMARY_REALM
-             and r.get("type") == "Buys"  and r.get("source") == "Auction"
-             and r.get("player") == FLIPPER]
-    sales = [r for r in records if r.get("realm") == PRIMARY_REALM
-             and r.get("type") == "Sales" and r.get("source") == "Auction"
-             and r.get("player") == FLIPPER]
-
-    buy_acc  = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
-    sell_acc = defaultdict(lambda: {"gold": 0.0, "qty": 0, "txns": 0})
-
-    for r in buys:
-        key = (r["item_id"], r.get("quality_tier", ""))
-        buy_acc[key]["gold"] += r["price_gold"]
-        buy_acc[key]["qty"]  += r["quantity"]
-        buy_acc[key]["txns"] += 1
-
-    for r in sales:
-        key = (r["item_id"], r.get("quality_tier", ""))
-        sell_acc[key]["gold"] += r["price_gold"]
-        sell_acc[key]["qty"]  += r["quantity"]
-        sell_acc[key]["txns"] += 1
-
-    return dict(buy_acc), dict(sell_acc)
+    return bankarang_pricing.bankarang_prices_weighted(
+        records, flipper=FLIPPER, realm=PRIMARY_REALM
+    )
 
 
 def _get_live_ah_price(item_id: int, realm: str = PRIMARY_REALM,
@@ -205,11 +187,13 @@ def build_reagent_signals(records: list[dict], names: dict,
       2. TSM market value — SECONDARY (if populated)
       3. Bankarang's personal avg sell/buy — TERTIARY (current fallback)
 
-    TOP BUYS:  live AH min ≥20% below Bankarang's historical avg sell price
-    TOP SELLS: live AH min ≥20% above Bankarang's historical avg buy price
+    TOP BUYS:  live AH min ≥20% below Bankarang's recent (last-28d, weighted) avg sell
+    TOP SELLS: live AH min ≥20% above Bankarang's recent (last-28d, weighted) avg buy
+
+    Items with no Bankarang sales in the last 28 days are excluded from SELL
+    opportunities — without recent activity there's no proof the price holds.
     """
-    buy_acc, sell_acc = _build_bankarang_prices(records)
-    all_keys: set[tuple] = set(buy_acc) | set(sell_acc)
+    ban_prices = _build_bankarang_prices(records)
 
     buy_signals:  list[dict] = []
     sell_signals: list[dict] = []
@@ -217,7 +201,7 @@ def build_reagent_signals(records: list[dict], names: dict,
     live_ah_checked = 0
     live_ah_found   = 0
 
-    for key in all_keys:
+    for key in ban_prices:
         iid, qt = key
         name = names.get(str(iid), f"Unknown Item ({iid})")
         if not is_midnight_reagent(name, iid):
@@ -225,13 +209,13 @@ def build_reagent_signals(records: list[dict], names: dict,
         if blizzard_api.is_excluded_item(iid):
             continue
 
-        b = buy_acc.get(key)
-        s = sell_acc.get(key)
-        avg_buy  = (b["gold"] / b["qty"]) if b and b["qty"] else None
-        avg_sell = (s["gold"] / s["qty"]) if s and s["qty"] else None
+        bp = ban_prices[key]
+        # Use recency-weighted averages as the primary signal anchor.
+        avg_buy  = bp["buy_recent_avg"]
+        avg_sell = bp["sell_recent_avg"]
         tsm_mv   = market_values.get(str(iid)) or None
-        buy_txns  = b["txns"] if b else 0
-        sell_txns = s["txns"] if s else 0
+        buy_txns  = bp["buy_recent_txns"]
+        sell_txns = bp["sell_recent_txns"]
         total_txns = buy_txns + sell_txns
 
         # --- Primary: live AH ---
@@ -247,8 +231,13 @@ def build_reagent_signals(records: list[dict], names: dict,
         price_source = "live_ah" if live_min is not None else ("tsm_mv" if tsm_mv else "personal")
         display_name = f"{name} {quality_tiers.fmt_quality(qt)}" if qt else name
 
+        alltime_sell = bp["sell_alltime_avg"]
+        alltime_buy  = bp["buy_alltime_avg"]
+        sell_days_since = bp["sell_days_since"]
+
         if ref_price is not None:
-            # BUY signal: live AH min is well below avg sell → buy to resell
+            # BUY signal: live AH min is well below recent avg sell → buy to resell.
+            # If avg_sell is None, Bankarang has no recent (≤28d) sales — skip.
             if avg_sell is not None:
                 profit = avg_sell - ref_price
                 spread_pct = (profit / avg_sell * 100) if avg_sell else 0
@@ -258,15 +247,18 @@ def build_reagent_signals(records: list[dict], names: dict,
                         "quality_tier": qt,
                         "ref_price": ref_price,
                         "avg_sell": avg_sell,
+                        "alltime_sell": alltime_sell,
                         "profit": profit,
                         "spread_pct": spread_pct,
-                        "txns": total_txns,
+                        "txns": sell_txns,
                         "listing_count": listing_count,
                         "price_source": price_source,
                         "fallback": price_source == "personal",
+                        "sell_days_since": sell_days_since,
                     })
 
-            # SELL signal: live AH min is well above avg buy → list now
+            # SELL signal: live AH min is well above recent avg buy → list now.
+            # If avg_buy is None, no recent buy data — skip.
             if avg_buy is not None:
                 profit = ref_price - avg_buy
                 spread_pct = (profit / avg_buy * 100) if avg_buy else 0
@@ -276,16 +268,17 @@ def build_reagent_signals(records: list[dict], names: dict,
                         "quality_tier": qt,
                         "ref_price": ref_price,
                         "avg_buy": avg_buy,
+                        "alltime_buy": alltime_buy,
                         "profit": profit,
                         "spread_pct": spread_pct,
-                        "txns": total_txns,
+                        "txns": buy_txns,
                         "listing_count": listing_count,
                         "price_source": price_source,
                         "fallback": price_source == "personal",
                     })
 
         else:
-            # TERTIARY: no external reference — use personal buy vs sell spread
+            # TERTIARY: no external reference — use personal recent buy vs sell spread
             if avg_buy is not None and avg_sell is not None:
                 spread = avg_sell - avg_buy
                 spread_pct = (spread / avg_buy * 100) if avg_buy else 0
@@ -295,21 +288,24 @@ def build_reagent_signals(records: list[dict], names: dict,
                         "quality_tier": qt,
                         "ref_price": avg_sell,
                         "avg_sell": avg_sell,
+                        "alltime_sell": alltime_sell,
                         "profit": spread,
                         "spread_pct": spread_pct,
-                        "txns": total_txns,
+                        "txns": sell_txns,
                         "listing_count": None,
                         "price_source": "personal",
                         "fallback": True,
+                        "sell_days_since": sell_days_since,
                     })
                     sell_signals.append({
                         "name": display_name,
                         "quality_tier": qt,
                         "ref_price": avg_buy,
                         "avg_buy": avg_buy,
+                        "alltime_buy": alltime_buy,
                         "profit": spread,
                         "spread_pct": spread_pct,
-                        "txns": total_txns,
+                        "txns": buy_txns,
                         "listing_count": None,
                         "price_source": "personal",
                         "fallback": True,
@@ -355,26 +351,30 @@ def format_message(top_buys: list[dict], top_sells: list[dict],
     # No message for no_sync: live AH is the intended primary source now
 
     if top_buys:
-        lines.append("📈 **TOP 5 BUYS** *(buy now — AH price below your avg sell)*")
+        lines.append("📈 **TOP 5 BUYS** *(buy now — AH price below recent sell avg, last 28d weighted)*")
         for i, item in enumerate(top_buys, 1):
             listings_str = f"{item['listing_count']} listings up" if item.get("listing_count") else "listings unknown"
             lines.append(f"{i}. **{item['name']}**")
-            lines.append(f"   Buy at: {fmt_g(item['ref_price'])}  →  Bankarang sold avg: {fmt_g(item.get('avg_sell'))}")
+            lines.append(f"   Buy at: {fmt_g(item['ref_price'])}  →  Recent sold avg: {fmt_g(item.get('avg_sell'))} ({item['txns']} txns ≤28d)")
+            if item.get("alltime_sell") is not None:
+                lines.append(f"   All-time sold avg: {fmt_g(item['alltime_sell'])}")
             lines.append(f"   Potential profit: **+{fmt_g(item['profit'])} per unit**")
-            lines.append(f"   {listings_str} | {item['txns']} txn history")
+            lines.append(f"   {listings_str}")
     else:
         lines.append("📈 **TOP 5 BUYS** — *No strong buy signals right now*")
 
     lines.append("")
 
     if top_sells:
-        lines.append("📉 **TOP 5 SELLS** *(list these now — AH price above your avg buy)*")
+        lines.append("📉 **TOP 5 SELLS** *(list now — AH price above recent buy avg, last 28d weighted)*")
         for i, item in enumerate(top_sells, 1):
             listings_str = f"{item['listing_count']} listings up" if item.get("listing_count") else "listings unknown"
             lines.append(f"{i}. **{item['name']}**")
-            lines.append(f"   Bankarang bought avg: {fmt_g(item.get('avg_buy'))}  →  Live AH min: {fmt_g(item['ref_price'])}")
+            lines.append(f"   Recent buy avg: {fmt_g(item.get('avg_buy'))} ({item['txns']} txns ≤28d)  →  Live AH min: {fmt_g(item['ref_price'])}")
+            if item.get("alltime_buy") is not None:
+                lines.append(f"   All-time buy avg: {fmt_g(item['alltime_buy'])}")
             lines.append(f"   Potential premium: **+{fmt_g(item['profit'])} per unit**")
-            lines.append(f"   {listings_str} | {item['txns']} txn history")
+            lines.append(f"   {listings_str}")
     else:
         lines.append("📉 **TOP 5 SELLS** — *No items currently above market*")
 

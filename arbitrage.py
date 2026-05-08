@@ -21,8 +21,8 @@ from pathlib import Path
 
 import blizzard_api
 
-DATA_FILE   = Path("/home/davidjsteinke/tsm_data.json")
-REPORT_FILE = Path("/home/davidjsteinke/report.txt")
+DATA_FILE   = Path.home() / "tsm_data.json"
+REPORT_FILE = Path(__file__).parent / "report.txt"
 
 AH_CUT          = 0.05    # Blizzard takes 5% on successful sales
 MIN_SPREAD_PCT  = 20.0    # minimum profit % to report

@@ -1,0 +1,14 @@
+[Unit]
+Description=TSM Auction Agent — parse TSM data, run profit analysis, generate dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/tsm-agent
+ExecStart=/usr/bin/bash %h/tsm-agent/run_agent.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
