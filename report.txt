@@ -7,7 +7,7 @@
   Realm                   Type           Records   Auction Only
 ────────────────────────────────────────────────────────────────────────────────────────────────────
   Malfurion ◀ primary             Buys               296            278
-  Malfurion ◀ primary             Sales              963            744
+  Malfurion ◀ primary             Sales              969            750
   Malfurion ◀ primary             Cancelled          239              0
   Malfurion ◀ primary             Expired            191              0
   Maelstrom                       Buys               258            241
@@ -17,7 +17,7 @@
   Thrall                          Buys                31             29
   Thrall                          Sales              129             27
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  Total records: 2705
+  Total records: 2711
 
 ═════════════════════════════════ PROFIT OPPORTUNITIES — Malfurion ═════════════════════════════════
   Auction-only | items appearing in BOTH buys & sales | ranked by gold profit/item
@@ -46,22 +46,30 @@
   Item                                     Avg Buy    Avg Sell   Profit/Item     Margin  Buy Txns  Sell Txns  Flag            
 ────────────────────────────────────────────────────────────────────────────────────────────────────
   Unknown Item (243973) (243973)           2374.95g     4749.71g     2374.75g    +100.0%         1          1  ★  HIGH MARGIN  
+  Unknown Item (237946) (237946)           1200.00g     2462.42g     1262.42g    +105.2%         0          1  ★  HIGH MARGIN  
   Unknown Item (244015) (244015)            620.18g     1531.49g      911.31g    +146.9%         1          1  ★  HIGH MARGIN  
+  Unknown Item (244709) (244709)            958.72g     1182.62g      223.90g     +23.4%         0          1  ★  HIGH MARGIN  
   Unknown Item (244641) (244641)           1687.79g     1756.48g       68.69g      +4.1%         1          1                  
   Unknown Item (237363) (237363)              9.88g       63.40g       53.52g    +542.0%         1          1  ★  HIGH MARGIN  
-  Unknown Item (237018) (237018)              2.28g       15.83g       13.55g    +594.7%         5          1  ★  HIGH MARGIN  
+  Unknown Item (237018) (237018)              2.08g       15.83g       13.74g    +659.6%         4          1  ★  HIGH MARGIN  
   Unknown Item (243582) (243582)              1.35g        4.46g        3.11g    +230.2%         1          2  ★  HIGH MARGIN  
   Unknown Item (236777) (236777)             39.99g       42.78g        2.79g      +7.0%         1          2                  
   Unknown Item (243578) (243578)              0.80g        2.32g        1.52g    +190.3%         6          1  ★  HIGH MARGIN  
-  Unknown Item (241309) (241309)              0.15g        1.16g        1.01g    +676.0%         1          4  ★  HIGH MARGIN  
+  Unknown Item (241309) (241309)              0.15g        1.04g        0.89g    +596.8%         1          3  ★  HIGH MARGIN  
+  Unknown Item (243600) (243600)              0.01g        0.33g        0.33g   +4452.2%         3          1  ★  HIGH MARGIN  
+  Unknown Item (238512) (238512)              1.35g        1.51g        0.16g     +11.9%         0          1                  
+  Unknown Item (236770) (236770)              0.07g        0.02g       -0.05g     -73.1%         0          2                  
   Unknown Item (236761) (236761)              0.32g        0.03g       -0.29g     -91.9%         1          2                  
   Unknown Item (238528) (238528)            167.93g      162.45g       -5.48g      -3.3%         3          1                  
+  Unknown Item (239201) (239201)             29.00g       14.30g      -14.70g     -50.7%         0          4                  
   Unknown Item (243577) (243577)            122.66g      105.45g      -17.21g     -14.0%         1          1                  
   Unknown Item (239198) (239198)             58.73g       15.52g      -43.21g     -73.6%         1          5                  
   Unknown Item (251285) (251285)            142.26g       90.38g      -51.87g     -36.5%         3          3                  
+  Unknown Item (238525) (238525)            153.18g       44.61g     -108.56g     -70.9%         0          3                  
   Unknown Item (240947) (240947)            323.63g      189.98g     -133.65g     -41.3%         1          1                  
+  Unknown Item (245776) (245776)          39000.85g     3515.91g   -35484.94g     -91.0%         0          1                  
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  Showing 15 of 15 items  |  9 profitable  |  7 with >20% margin
+  Showing 23 of 23 items  |  13 profitable  |  10 with >20% margin
 
 ═════════════════════════════════ PROFIT OPPORTUNITIES — Maelstrom ═════════════════════════════════
   Auction-only | items appearing in BOTH buys & sales | ranked by gold profit/item
@@ -140,7 +148,7 @@
   Unknown Item (239643) (239643)              1        2           3        2      60.0%           —  △  High fail rate — review price vs market
   Unknown Item (239642) (239642)              1        2           3        2      60.0%           —  △  High fail rate — review price vs market
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  146 unique items  |  239 total cancels  |  191 total expirations  |  44 items consistently failing (≥80%)
+  146 unique items  |  239 total cancels  |  191 total expirations  |  43 items consistently failing (≥80%)
 
 ═══════════════════════════════ HIGH-MARGIN ITEMS (>20%) — MALFURION ═══════════════════════════════
 ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -157,7 +165,7 @@
 
 ════════════════════════════════════════════════════════════════════════════════════════════════════
   Report generated from: /home/dave/tsm_data.json
-  Records analysed: 2705
+  Records analysed: 2711
 ════════════════════════════════════════════════════════════════════════════════════════════════════
 
 ═══════════════════════════════ CROSS-REALM ARBITRAGE OPPORTUNITIES ════════════════════════════════
@@ -212,7 +220,7 @@
   Unknown Item (238009) (238009)          Malfurion         759.99g   S  Moon Guard       1187.50g   B     427.51g    +56.3%      2
   Unknown Item (241312) (241312)          Malfurion         176.23g   S  Maelstrom         579.49g   B     403.26g   +228.8%      2
   Unknown Item (244620) (244620)          Malfurion         555.74g   S  Moon Guard        945.66g   B     389.92g    +70.2%      3
-  Unknown Item (238519) (238519)          Malfurion          57.35g   S  Thrall            419.66g   S     362.31g   +631.7%      6
+  Unknown Item (238519) (238519)          Malfurion          49.85g   S  Thrall            419.66g   S     369.82g   +741.9%      7
   Unknown Item (244707) (244707)          Malfurion        1324.79g   S  Maelstrom        1676.74g   B     351.95g    +26.6%      3
   Unknown Item (242606) (242606)          Moon Guard         94.50g   B  Malfurion         397.73g   S     303.24g   +320.9%      2
   Unknown Item (245794) (245794)          Maelstrom          87.21g   B  Thrall            380.94g   B     293.73g   +336.8%      2
@@ -278,6 +286,7 @@
   Unknown Item (268954) (268954)          Malfurion           0.10g   S  Moon Guard          0.88g   S       0.78g   +747.2%      2
   Unknown Item (238511) (238511)          Maelstrom           0.04g   B  Malfurion           0.80g   S       0.76g  +1732.2%     11
   Unknown Item (236951) (236951)          Maelstrom           0.10g   B  Thrall              0.85g   S       0.75g   +770.4%     12
+  Unknown Item (241339) (241339)          Moon Guard          0.94g   S  Malfurion           1.63g   S       0.69g    +74.0%      2
   Unknown Item (243600) (243600)          Moon Guard          0.01g   B  Maelstrom           0.63g   B       0.62g  +7634.4%      4
   Unknown Item (238365) (238365)          Moon Guard          0.06g   B  Malfurion           0.50g   S       0.44g   +710.3%      3
   Unknown Item (236949) (236949)          Maelstrom           0.21g   B  Moon Guard          0.61g   B       0.40g   +192.2%     23
@@ -290,4 +299,4 @@
   Unknown Item (242787) (242787)          Moon Guard          0.03g   B  Malfurion           0.04g   B       0.01g    +59.9%      3
   Unknown Item (223512) (223512)          Malfurion           0.01g   S  Moon Guard          0.02g   S       0.01g   +177.7%      3
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  123 opportunities found  |  avg profit 1352.60g/item  |  best: Unknown Item (245776) (245776) @ +32442.86g (+704.1%)
+  124 opportunities found  |  avg profit 1341.75g/item  |  best: Unknown Item (245776) (245776) @ +32442.86g (+704.1%)
