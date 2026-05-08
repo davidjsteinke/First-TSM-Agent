@@ -357,7 +357,10 @@ def build_reagents(records: list[dict], names: dict,
     out = []
     for key in all_keys:
         iid, qt = key
-        name = names.get(str(iid), f"Unknown Item ({iid})")
+        # Skip items with no resolved name — they would show as "Unknown Item"
+        if str(iid) not in names:
+            continue
+        name = names[str(iid)]
         if not is_midnight_reagent(name, iid):
             continue
 
@@ -1586,8 +1589,9 @@ function initTopOpportunities() {
     const thead = `<tr>
       <th style="width:48px">Rank</th><th>Item Name</th>
       <th title="Cheapest current AH listing">Live AH Min</th>
-      <th title="Bankarang weighted avg sell price">Bankarang's Avg Sell</th>
-      <th title="Avg sell minus live min">Profit / Item</th>
+      <th title="Bankarang's recency-weighted (≤28d) sell avg — primary signal">Bnkrng Sell ≤28d</th>
+      <th title="Bankarang's all-time sell avg (every transaction equal weight)">Bnkrng Sell (all)</th>
+      <th title="Avg sell (recent) minus live min">Profit / Item</th>
       <th title="Number of separate auctions right now">Listings Available</th>
       <th title="Bankarang buy transactions (confidence)">Transactions</th>
     </tr>`;
@@ -1598,6 +1602,7 @@ function initTopOpportunities() {
         <td>${itemCell(r)}</td>
         <td>${fmt_g(r.live_ah_min)}</td>
         <td>${fmt_g(r.bankarang_avg_sell)}</td>
+        <td>${r.bankarang_avg_sell_alltime != null ? fmt_g(r.bankarang_avg_sell_alltime) : '<span class="muted">—</span>'}</td>
         <td class="pos">+${fmt_g(r.opp_profit)}</td>
         <td>${r.listing_count != null ? r.listing_count.toLocaleString() : '—'}</td>
         <td class="muted">${r.buy_txns || '—'}</td>
@@ -1610,9 +1615,10 @@ function initTopOpportunities() {
     if (!sells.length) return '<div style="padding:20px;color:var(--muted)">No sell signals right now — no items with live AH min above Bankarang avg buy.</div>';
     const thead = `<tr>
       <th style="width:48px">Rank</th><th>Item Name</th>
-      <th title="Bankarang weighted avg buy price">Bankarang's Avg Buy</th>
+      <th title="Bankarang's recency-weighted (≤28d) buy avg — primary signal">Bnkrng Buy ≤28d</th>
+      <th title="Bankarang's all-time buy avg (every transaction equal weight)">Bnkrng Buy (all)</th>
       <th title="Cheapest current AH listing — list at or near this">Live AH Min</th>
-      <th title="Live min minus avg buy">Premium / Item</th>
+      <th title="Live min minus avg buy (recent)">Premium / Item</th>
       <th title="Number of separate auctions right now (your competition)">Listings Currently Up</th>
       <th title="Bankarang sell transactions (confidence)">Transactions</th>
     </tr>`;
@@ -1622,6 +1628,7 @@ function initTopOpportunities() {
         <td class="muted" style="text-align:center">${rank}</td>
         <td>${itemCell(r)}</td>
         <td>${fmt_g(r.bankarang_avg_buy)}</td>
+        <td>${r.bankarang_avg_buy_alltime != null ? fmt_g(r.bankarang_avg_buy_alltime) : '<span class="muted">—</span>'}</td>
         <td>${fmt_g(r.live_ah_min)}</td>
         <td class="pos">+${fmt_g(r.opp_premium)}</td>
         <td>${r.listing_count != null ? r.listing_count.toLocaleString() : '—'}</td>

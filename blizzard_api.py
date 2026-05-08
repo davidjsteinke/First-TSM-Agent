@@ -112,9 +112,12 @@ def _get_token() -> str:
 # ---------------------------------------------------------------------------
 
 def _load_cache() -> dict[str, str]:
+    """Load the name cache, dropping any poisoned 'Unknown Item' placeholders
+    so a transient API failure doesn't leave items unresolvable forever."""
     if CACHE_FILE.exists():
         try:
-            return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            raw = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            return {k: v for k, v in raw.items() if not str(v).startswith("Unknown Item")}
         except (json.JSONDecodeError, OSError):
             pass
     return {}
@@ -208,9 +211,11 @@ def get_item_name(item_id: int) -> str:
         _class_cache[key] = {"c": class_id, "s": subclass_id}
         _save_class_cache(_class_cache)
     except Exception as exc:
-        # Non-fatal: bad IDs (bonus-ID variants, test items) return 404
+        # Non-fatal: bad IDs (bonus-ID variants, test items) return 404.
+        # Don't persist failures to the cache — a transient blip would
+        # otherwise leave the item unresolvable on every future run.
         print(f"  [blizzard_api] lookup failed for item {item_id}: {exc}")
-        name = f"Unknown Item ({item_id})"
+        return f"Unknown Item ({item_id})"
 
     _cache[key] = name
     _save_cache(_cache)

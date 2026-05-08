@@ -7,8 +7,8 @@
   Realm                   Type           Records   Auction Only
 ────────────────────────────────────────────────────────────────────────────────────────────────────
   Malfurion ◀ primary             Buys               296            278
-  Malfurion ◀ primary             Sales              969            750
-  Malfurion ◀ primary             Cancelled          239              0
+  Malfurion ◀ primary             Sales              970            751
+  Malfurion ◀ primary             Cancelled          241              0
   Malfurion ◀ primary             Expired            191              0
   Maelstrom                       Buys               258            241
   Maelstrom                       Sales               61              0
@@ -17,7 +17,7 @@
   Thrall                          Buys                31             29
   Thrall                          Sales              129             27
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  Total records: 2711
+  Total records: 2714
 
 ═════════════════════════════════ PROFIT OPPORTUNITIES — Malfurion ═════════════════════════════════
   Auction-only | items appearing in BOTH buys & sales | ranked by gold profit/item
@@ -45,29 +45,29 @@
 ────────────────────────────────────────────────────────────────────────────────────────────────────
   Item                                     Avg Buy    Avg Sell   Profit/Item     Margin  Buy Txns  Sell Txns  Flag            
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  Unknown Item (243973) (243973)           2374.95g     4749.71g     2374.75g    +100.0%         1          1  ★  HIGH MARGIN  
-  Unknown Item (237946) (237946)           1200.00g     2462.42g     1262.42g    +105.2%         0          1  ★  HIGH MARGIN  
-  Unknown Item (244015) (244015)            620.18g     1531.49g      911.31g    +146.9%         1          1  ★  HIGH MARGIN  
-  Unknown Item (244709) (244709)            958.72g     1182.62g      223.90g     +23.4%         0          1  ★  HIGH MARGIN  
-  Unknown Item (244641) (244641)           1687.79g     1756.48g       68.69g      +4.1%         1          1                  
-  Unknown Item (237363) (237363)              9.88g       63.40g       53.52g    +542.0%         1          1  ★  HIGH MARGIN  
-  Unknown Item (237018) (237018)              2.08g       15.83g       13.74g    +659.6%         4          1  ★  HIGH MARGIN  
-  Unknown Item (243582) (243582)              1.35g        4.46g        3.11g    +230.2%         1          2  ★  HIGH MARGIN  
-  Unknown Item (236777) (236777)             39.99g       42.78g        2.79g      +7.0%         1          2                  
-  Unknown Item (243578) (243578)              0.80g        2.32g        1.52g    +190.3%         6          1  ★  HIGH MARGIN  
-  Unknown Item (241309) (241309)              0.15g        1.04g        0.89g    +596.8%         1          3  ★  HIGH MARGIN  
-  Unknown Item (243600) (243600)              0.01g        0.33g        0.33g   +4452.2%         3          1  ★  HIGH MARGIN  
-  Unknown Item (238512) (238512)              1.35g        1.51g        0.16g     +11.9%         0          1                  
-  Unknown Item (236770) (236770)              0.07g        0.02g       -0.05g     -73.1%         0          2                  
-  Unknown Item (236761) (236761)              0.32g        0.03g       -0.29g     -91.9%         1          2                  
-  Unknown Item (238528) (238528)            167.93g      162.45g       -5.48g      -3.3%         3          1                  
-  Unknown Item (239201) (239201)             29.00g       14.30g      -14.70g     -50.7%         0          4                  
-  Unknown Item (243577) (243577)            122.66g      105.45g      -17.21g     -14.0%         1          1                  
-  Unknown Item (239198) (239198)             58.73g       15.52g      -43.21g     -73.6%         1          5                  
-  Unknown Item (251285) (251285)            142.26g       90.38g      -51.87g     -36.5%         3          3                  
-  Unknown Item (238525) (238525)            153.18g       44.61g     -108.56g     -70.9%         0          3                  
-  Unknown Item (240947) (240947)            323.63g      189.98g     -133.65g     -41.3%         1          1                  
-  Unknown Item (245776) (245776)          39000.85g     3515.91g   -35484.94g     -91.0%         0          1                  
+  Enchant Weapon - Berserker's Rage (2     2374.95g     4749.71g     2374.75g    +100.0%         1          1  ★  HIGH MARGIN  
+  Thalassian Needle Set (237946)           1200.00g     2462.42g     1262.42g    +105.2%         0          1  ★  HIGH MARGIN  
+  Enchant Ring - Silvermoon's Alacrity      620.18g     1531.49g      911.31g    +146.9%         1          1  ★  HIGH MARGIN  
+  Junker's Junk Visor (244709)              958.72g     1182.62g      223.90g     +23.4%         0          1  ★  HIGH MARGIN  
+  Forest Hunter's Armor Kit (244641)       1687.79g     1756.48g       68.69g      +4.1%         1          1                  
+  Umbral Tin Ore (237363)                     9.88g       63.40g       53.52g    +542.0%         1          1  ★  HIGH MARGIN  
+  Arcanoweave (237018)                        2.08g       15.83g       13.74g    +659.6%         4          1  ★  HIGH MARGIN  
+  Evercore (243582)                           1.35g        4.46g        3.11g    +230.2%         1          2  ★  HIGH MARGIN  
+  Argentleaf (236777)                        39.99g       42.78g        2.79g      +7.0%         1          2                  
+  Aetherlume (243578)                         0.80g        2.32g        1.52g    +190.3%         6          1  ★  HIGH MARGIN  
+  Light's Potential (241309)                  0.15g        1.04g        0.89g    +596.8%         1          3  ★  HIGH MARGIN  
+  Eversinging Dust (243600)                   0.01g        0.33g        0.33g   +4452.2%         3          1  ★  HIGH MARGIN  
+  Void-Tempered Leather (238512)              1.35g        1.51g        0.16g     +11.9%         0          1                  
+  Sanguithorn (236770)                        0.07g        0.02g       -0.05g     -73.1%         0          2                  
+  Tranquility Bloom (236761)                  0.32g        0.03g       -0.29g     -91.9%         1          2                  
+  Majestic Claw (238528)                    167.93g      162.45g       -5.48g      -3.3%         3          1                  
+  Sunfire Silk Bolt (239201)                 29.00g       14.30g      -14.70g     -50.7%         0          4                  
+  Soul Sprocket (243577)                    122.66g      105.45g      -17.21g     -14.0%         1          1                  
+  Arcanoweave Bolt (239198)                  58.73g       15.52g      -43.21g     -73.6%         1          5                  
+  Petrified Root (251285)                   142.26g       90.38g      -51.87g     -36.5%         3          3                  
+  Fantastic Fur (238525)                    153.18g       44.61g     -108.56g     -70.9%         0          3                  
+  Gleaming Copper Band (240947)             323.63g      189.98g     -133.65g     -41.3%         1          1                  
+  Sin'dorei Quill (245776)                39000.85g     3515.91g   -35484.94g     -91.0%         0          1                  
 ────────────────────────────────────────────────────────────────────────────────────────────────────
   Showing 23 of 23 items  |  13 profitable  |  10 with >20% margin
 
@@ -107,48 +107,48 @@
 ────────────────────────────────────────────────────────────────────────────────────────────────────
   Item                                  Cancels  Expired  Failed Qty  Sold OK  Fail Rate     Avg Buy  Advice
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  Unknown Item (192495) (192495)             11       19          35        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244714) (244714)              6       10          18        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244615) (244615)              8        7          15        3      83.3%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (233528) (233528)              5        8          13        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244616) (244616)              9        4          13        2      86.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244674) (244674)             11        2         106        6      68.4%           —  △  High fail rate — review price vs market
-  Unknown Item (241310) (241310)              8        5          99        8      61.9%           —  △  High fail rate — review price vs market
-  Unknown Item (245776) (245776)              7        5          12        2      85.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (238) (238)                    4        7          11        1      91.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244619) (244619)              5        4          11        3      75.0%       15.00g  △  High fail rate — review price vs market
-  Unknown Item (244596) (244596)              5        3           8        2      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244717) (244717)              3        5           9        2      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (239644) (239644)              6        2           8        3      72.7%           —  △  High fail rate — review price vs market
-  Unknown Item (244626) (244626)              5        3          15       19      29.6%           —  
-  Unknown Item (258910) (258910)              5        2           7        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244709) (244709)              3        4           8        2      77.8%           —  △  High fail rate — review price vs market
-  Unknown Item (237946) (237946)              1        5           6        1      85.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (245777) (245777)              3        3           6        2      75.0%           —  △  High fail rate — review price vs market
-  Unknown Item (240954) (240954)              3        3           6        2      75.0%           —  △  High fail rate — review price vs market
-  Unknown Item (244702) (244702)              4        2          19        3      66.7%           —  △  High fail rate — review price vs market
-  Unknown Item (244588) (244588)              2        3           5        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244704) (244704)              4        1          17        1      83.3%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (243577) (243577)              5        0          21        7      41.7%           —  ℹ  Cancelled only — manual undercut response
-  Unknown Item (3914) (3914)                  2        2           4        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (14046) (14046)                2        2           8        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (245773) (245773)              2        2           4        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244600) (244600)              2        2           4        1      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (240159) (240159)              4        0           4        1      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (244627) (244627)              2        2           4        2      66.7%           —  △  High fail rate — review price vs market
-  Unknown Item (239645) (239645)              3        1           4        2      66.7%           —  △  High fail rate — review price vs market
-  Unknown Item (243575) (243575)              2        2          10        2      66.7%           —  △  High fail rate — review price vs market
-  Unknown Item (240947) (240947)              2        2           4        3      57.1%           —  △  High fail rate — review price vs market
-  Unknown Item (244632) (244632)              4        0           8        4      50.0%           —  △  High fail rate — review price vs market
-  Unknown Item (245817) (245817)              4        0           7        4      50.0%           —  △  High fail rate — review price vs market
-  Unknown Item (245772) (245772)              1        2           3        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
-  Unknown Item (241312) (241312)              2        1           7        1      75.0%           —  △  High fail rate — review price vs market
-  Unknown Item (262618) (262618)              2        1           3        1      75.0%           —  △  High fail rate — review price vs market
-  Unknown Item (257741) (257741)              2        1           3        1      75.0%           —  △  High fail rate — review price vs market
-  Unknown Item (239643) (239643)              1        2           3        2      60.0%           —  △  High fail rate — review price vs market
-  Unknown Item (239642) (239642)              1        2           3        2      60.0%           —  △  High fail rate — review price vs market
+  Malfunctioning Stealthman 54 (192495       11       19          35        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Sin'dorei Clampers (244714)                 6       10          18        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Eversong Botanist's Satchel (244615)        8        7          15        3      83.3%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Gold-Plated Shield (233528)                 5        8          13        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Skinner's Backpack (244616)                 9        4          13        2      86.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Devouring Banding (244674)                 11        2         106        6      68.4%           —  △  High fail rate — review price vs market
+  Haranir Phial of Finesse (241310)           8        5          99        8      61.9%           —  △  High fail rate — review price vs market
+  Sin'dorei Quill (245776)                    7        5          12        2      85.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Cured Leather Boots (238)                   4        7          11        1      91.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Hideworker's Cover (244619)                 5        4          11        3      75.0%       15.00g  △  High fail rate — review price vs market
+  Tarnished Dawnlit Loop (258910)             6        2           8        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Scout's Polished Skullcap (244596)          5        3           8        2      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Junker's Multitool (244717)                 3        5           9        2      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Bright Linen Fishing Hat (239644)           6        2           8        3      72.7%           —  △  High fail rate — review price vs market
+  Sin'dorei Alchemist's Hat (244626)          5        3          15       19      29.6%           —  
+  Junker's Junk Visor (244709)                3        4           8        2      77.8%           —  △  High fail rate — review price vs market
+  Thalassian Needle Set (237946)              1        5           6        1      85.7%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Hobbyist Alchemist's Mixing Rod (245        3        3           6        2      75.0%           —  △  High fail rate — review price vs market
+  Fantastic Font Focuser (240954)             3        3           6        2      75.0%           —  △  High fail rate — review price vs market
+  Perfected Cogwheel (244702)                 4        2          19        3      66.7%           —  △  High fail rate — review price vs market
+  Scout's Scaled Boots (244588)               2        3           5        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Consistent Cogwheel (244704)                4        1          17        1      83.3%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Soul Sprocket (243577)                      5        0          21        7      41.7%           —  ℹ  Cancelled only — manual undercut response
+  Journeyman's Backpack (3914)                2        2           4        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Runecloth Bag (14046)                       2        2           8        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Faunatender's Baton (245773)                2        2           4        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Scout's Polished Wrap (244600)              2        2           4        1      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Bright Linen Reagent Satchel (240159        4        0           4        1      80.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Apprentice Smith's Apron (244627)           2        2           4        2      66.7%           —  △  High fail rate — review price vs market
+  Bright Linen Herbalism Hat (239645)         3        1           4        2      66.7%           —  △  High fail rate — review price vs market
+  Song Gear (243575)                          2        2          10        2      66.7%           —  △  High fail rate — review price vs market
+  Gleaming Copper Band (240947)               2        2           4        3      57.1%           —  △  High fail rate — review price vs market
+  Scalewoven Hide (244632)                    4        0           8        4      50.0%           —  △  High fail rate — review price vs market
+  Thalassian Missive of Resourcefulnes        4        0           7        4      50.0%           —  △  High fail rate — review price vs market
+  Floratender's Crutch (245772)               1        2           3        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Tarnished Dawnlit Sentinel's Girdle         1        2           3        0     100.0%           —  ⚠  CONSISTENTLY FAILING — reprice or stop listing
+  Haranir Phial of Ingenuity (241312)         2        1           7        1      75.0%           —  △  High fail rate — review price vs market
+  Ren'dorei Void Projector (262618)           2        1           3        1      75.0%           —  △  High fail rate — review price vs market
+  B0P, Curator of Booms (257741)              2        1           3        1      75.0%           —  △  High fail rate — review price vs market
+  Bright Linen Enchanting Hat (239643)        1        2           3        2      60.0%           —  △  High fail rate — review price vs market
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  146 unique items  |  239 total cancels  |  191 total expirations  |  43 items consistently failing (≥80%)
+  146 unique items  |  241 total cancels  |  191 total expirations  |  43 items consistently failing (≥80%)
 
 ═══════════════════════════════ HIGH-MARGIN ITEMS (>20%) — MALFURION ═══════════════════════════════
 ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@
 
 ════════════════════════════════════════════════════════════════════════════════════════════════════
   Report generated from: /home/dave/tsm_data.json
-  Records analysed: 2711
+  Records analysed: 2714
 ════════════════════════════════════════════════════════════════════════════════════════════════════
 
 ═══════════════════════════════ CROSS-REALM ARBITRAGE OPPORTUNITIES ════════════════════════════════
@@ -174,129 +174,129 @@
 ────────────────────────────────────────────────────────────────────────────────────────────────────
   Item                                    Buy Realm       Buy Price Src  Sell Realm       Sell Net Src      Profit    Spread   Txns
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  Unknown Item (245776) (245776)          Malfurion        4607.95g   S  Maelstrom       37050.81g   B   32442.86g   +704.1%      3
-  Unknown Item (240960) (240960)          Moon Guard       2949.78g   B  Malfurion       20900.36g   B   17950.58g   +608.5%      2
-  Unknown Item (244708) (244708)          Malfurion        2204.50g   B  Maelstrom       12249.30g   B   10044.80g   +455.6%      2
-  Unknown Item (238529) (238529)          Malfurion        3500.28g   B  Maelstrom       12397.97g   B    8897.69g   +254.2%      2
-  Unknown Item (240983) (240983)          Moon Guard        975.48g   B  Thrall           9498.95g   B    8523.48g   +873.8%      2
-  Unknown Item (239637) (239637)          Moon Guard       2845.20g   B  Malfurion        9018.29g   B    6173.09g   +217.0%      3
-  Unknown Item (237950) (237950)          Malfurion        6886.92g   B  Maelstrom       11875.00g   B    4988.08g    +72.4%      2
-  Unknown Item (244176) (244176)          Moon Guard       2112.00g   B  Malfurion        6982.49g   B    4870.49g   +230.6%      2
-  Unknown Item (240974) (240974)          Moon Guard       1500.00g   B  Malfurion        6126.17g   S    4626.17g   +308.4%      2
-  Unknown Item (239645) (239645)          Malfurion         183.90g   S  Moon Guard       4750.00g   B    4566.10g  +2483.0%      3
-  Unknown Item (240953) (240953)          Malfurion          61.27g   S  Maelstrom        4275.00g   B    4213.73g  +6877.3%      3
-  Unknown Item (240954) (240954)          Malfurion         197.12g   S  Maelstrom        4275.00g   B    4077.88g  +2068.8%      3
-  Unknown Item (244015) (244015)          Moon Guard        620.18g   B  Malfurion        4564.31g   S    3944.14g   +636.0%      3
-  Unknown Item (238011) (238011)          Malfurion         327.74g   S  Maelstrom        4108.85g   B    3781.11g  +1153.7%      2
-  Unknown Item (244624) (244624)          Moon Guard       1825.78g   B  Malfurion        5224.97g   B    3399.19g   +186.2%      2
-  Unknown Item (244627) (244627)          Malfurion          61.74g   S  Maelstrom        3322.15g   B    3260.41g  +5281.2%      3
-  Unknown Item (243973) (243973)          Moon Guard       2374.95g   B  Malfurion        5264.49g   S    2889.54g   +121.7%      3
-  Unknown Item (244616) (244616)          Malfurion        1299.79g   S  Maelstrom        3794.05g   B    2494.26g   +191.9%      3
-  Unknown Item (244619) (244619)          Malfurion         197.91g   S  Maelstrom        2645.72g   B    2447.81g  +1236.8%      4
-  Unknown Item (244641) (244641)          Moon Guard       1687.79g   B  Malfurion        3902.82g   S    2215.03g   +131.2%      4
-  Unknown Item (244025) (244025)          Moon Guard       2999.96g   B  Maelstrom        5060.03g   B    2060.07g    +68.7%      2
-  Unknown Item (239642) (239642)          Malfurion         454.66g   S  Maelstrom        2398.75g   B    1944.09g   +427.6%      4
-  Unknown Item (245779) (245779)          Moon Guard        400.00g   B  Maelstrom        2315.62g   B    1915.62g   +478.9%      4
-  Unknown Item (239641) (239641)          Malfurion         116.17g   S  Moon Guard       1900.00g   B    1783.83g  +1535.6%      3
-  Unknown Item (244719) (244719)          Malfurion         688.75g   S  Maelstrom        2374.03g   B    1685.29g   +244.7%      3
-  Unknown Item (244715) (244715)          Malfurion         855.00g   S  Maelstrom        2369.28g   B    1514.29g   +177.1%      3
-  Unknown Item (238012) (238012)          Malfurion          95.91g   S  Maelstrom        1513.28g   B    1417.37g  +1477.8%      2
-  Unknown Item (244711) (244711)          Malfurion         759.52g   S  Moon Guard       1900.55g   B    1141.03g   +150.2%      4
-  Unknown Item (237946) (237946)          Maelstrom        1200.00g   B  Malfurion        2339.30g   S    1139.30g    +94.9%      2
-  Unknown Item (238013) (238013)          Malfurion         645.04g   S  Maelstrom        1776.72g   B    1131.68g   +175.4%      2
-  Unknown Item (236780) (236780)          Maelstrom         312.50g   B  Malfurion        1439.48g   S    1126.98g   +360.6%      4
-  Unknown Item (245777) (245777)          Malfurion         127.14g   S  Moon Guard       1187.02g   B    1059.88g   +833.6%      3
-  Unknown Item (238010) (238010)          Malfurion         783.26g   S  Maelstrom        1708.09g   B     924.83g   +118.1%      2
-  Unknown Item (244629) (244629)          Malfurion         406.21g   S  Moon Guard       1187.46g   B     781.26g   +192.3%      3
-  Unknown Item (237947) (237947)          Malfurion         474.99g   S  Maelstrom        1187.50g   B     712.50g   +150.0%      2
-  Unknown Item (238530) (238530)          Maelstrom         524.99g   B  Moon Guard       1235.75g   B     710.77g   +135.4%      2
-  Unknown Item (240959) (240959)          Moon Guard         80.00g   B  Malfurion         712.50g   B     632.50g   +790.6%      2
-  Unknown Item (243605) (243605)          Moon Guard        162.50g   B  Malfurion         788.32g   B     625.82g   +385.1%      9
-  Unknown Item (244615) (244615)          Moon Guard        894.00g   B  Malfurion        1517.79g   S     623.79g    +69.8%      4
-  Unknown Item (245775) (245775)          Malfurion         831.24g   S  Maelstrom        1425.00g   B     593.76g    +71.4%      2
-  Unknown Item (238525) (238525)          Moon Guard         64.76g   B  Thrall            604.37g   B     539.61g   +833.3%      2
-  Unknown Item (244713) (244713)          Moon Guard        750.91g   B  Malfurion        1286.05g   S     535.14g    +71.3%      3
-  Unknown Item (238202) (238202)          Maelstrom          18.09g   B  Malfurion         495.42g   S     477.33g  +2638.3%      2
-  Unknown Item (238009) (238009)          Malfurion         759.99g   S  Moon Guard       1187.50g   B     427.51g    +56.3%      2
-  Unknown Item (241312) (241312)          Malfurion         176.23g   S  Maelstrom         579.49g   B     403.26g   +228.8%      2
-  Unknown Item (244620) (244620)          Malfurion         555.74g   S  Moon Guard        945.66g   B     389.92g    +70.2%      3
-  Unknown Item (238519) (238519)          Malfurion          49.85g   S  Thrall            419.66g   S     369.82g   +741.9%      7
-  Unknown Item (244707) (244707)          Malfurion        1324.79g   S  Maelstrom        1676.74g   B     351.95g    +26.6%      3
-  Unknown Item (242606) (242606)          Moon Guard         94.50g   B  Malfurion         397.73g   S     303.24g   +320.9%      2
-  Unknown Item (245794) (245794)          Maelstrom          87.21g   B  Thrall            380.94g   B     293.73g   +336.8%      2
-  Unknown Item (242607) (242607)          Moon Guard         86.84g   B  Malfurion         367.07g   S     280.23g   +322.7%      5
-  Unknown Item (242554) (242554)          Moon Guard        135.21g   B  Malfurion         365.36g   S     230.15g   +170.2%      5
-  Unknown Item (245764) (245764)          Moon Guard         30.67g   B  Malfurion         245.02g   S     214.35g   +699.0%      4
-  Unknown Item (240157) (240157)          Malfurion          70.30g   S  Thrall            266.34g   B     196.04g   +278.9%      2
-  Unknown Item (243575) (243575)          Moon Guard          8.95g   B  Malfurion         204.29g   S     195.34g  +2182.7%      3
-  Unknown Item (251923) (251923)          Thrall            361.42g   S  Malfurion         550.52g   S     189.10g    +52.3%      2
-  Unknown Item (251285) (251285)          Malfurion          53.91g   S  Maelstrom         229.37g   B     175.46g   +325.5%      7
-  Unknown Item (242611) (242611)          Moon Guard        240.57g   B  Malfurion         388.07g   S     147.50g    +61.3%     10
-  Unknown Item (242620) (242620)          Moon Guard         36.59g   B  Malfurion         168.13g   S     131.54g   +359.5%     11
-  Unknown Item (240947) (240947)          Malfurion         197.42g   S  Moon Guard        307.45g   B     110.03g    +55.7%      4
-  Unknown Item (240972) (240972)          Malfurion           7.49g   B  Moon Guard        114.27g   B     106.78g  +1425.4%      4
-  Unknown Item (243576) (243576)          Moon Guard         22.39g   B  Malfurion         110.91g   B      88.52g   +395.3%     11
-  Unknown Item (237363) (237363)          Maelstrom           9.88g   B  Malfurion          88.58g   S      78.70g   +797.0%     10
-  Unknown Item (242612) (242612)          Moon Guard        156.57g   B  Malfurion         233.91g   B      77.34g    +49.4%     11
-  Unknown Item (238518) (238518)          Moon Guard          8.03g   B  Thrall             76.06g   S      68.03g   +847.0%      2
-  Unknown Item (242610) (242610)          Moon Guard        182.65g   B  Malfurion         245.62g   B      62.98g    +34.5%      9
-  Unknown Item (244637) (244637)          Maelstrom          24.94g   B  Malfurion          87.53g   S      62.59g   +251.0%      3
-  Unknown Item (237366) (237366)          Malfurion          72.67g   S  Thrall            134.38g   S      61.71g    +84.9%      2
-  Unknown Item (241304) (241304)          Moon Guard          6.88g   B  Malfurion          53.79g   S      46.91g   +682.4%      2
-  Unknown Item (251283) (251283)          Malfurion           2.38g   S  Maelstrom          46.49g   B      44.11g  +1854.5%      2
-  Unknown Item (245766) (245766)          Moon Guard         23.24g   B  Maelstrom          67.34g   B      44.10g   +189.8%      6
-  Unknown Item (245801) (245801)          Maelstrom           3.01g   B  Malfurion          43.64g   S      40.63g  +1347.9%     10
-  Unknown Item (236776) (236776)          Maelstrom           0.25g   B  Thrall             27.98g   S      27.73g  +11140.5%      2
-  Unknown Item (238383) (238383)          Moon Guard          7.38g   B  Malfurion          33.79g   S      26.41g   +358.2%      3
-  Unknown Item (244635) (244635)          Malfurion          93.28g   S  Maelstrom         116.38g   B      23.10g    +24.8%      3
-  Unknown Item (241281) (241281)          Maelstrom          16.19g   B  Moon Guard         33.84g   S      17.65g   +109.0%      2
-  Unknown Item (241301) (241301)          Moon Guard          2.71g   S  Malfurion          19.98g   S      17.27g   +636.4%      2
-  Unknown Item (237015) (237015)          Maelstrom           2.63g   B  Malfurion          19.38g   S      16.75g   +637.6%      8
-  Unknown Item (239198) (239198)          Malfurion          41.73g   S  Moon Guard         55.80g   B      14.06g    +33.7%     18
-  Unknown Item (238520) (238520)          Moon Guard          0.81g   B  Thrall             13.51g   S      12.70g  +1558.0%      3
-  Unknown Item (238513) (238513)          Maelstrom           0.13g   B  Thrall             12.24g   S      12.11g  +9062.3%     13
-  Unknown Item (238522) (238522)          Malfurion          50.59g   S  Maelstrom          61.77g   B      11.18g    +22.1%     12
-  Unknown Item (243734) (243734)          Moon Guard          8.00g   B  Malfurion          17.95g   S       9.95g   +124.4%      2
-  Unknown Item (245865) (245865)          Maelstrom           0.04g   B  Malfurion           9.93g   S       9.89g  +22089.4%      3
-  Unknown Item (238523) (238523)          Malfurion           1.83g   S  Thrall             10.68g   S       8.84g   +482.9%      3
-  Unknown Item (237362) (237362)          Moon Guard          0.63g   B  Thrall              9.25g   S       8.61g  +1360.3%      6
-  Unknown Item (241307) (241307)          Moon Guard          1.38g   B  Malfurion           9.93g   S       8.55g   +621.5%      2
-  Unknown Item (237018) (237018)          Maelstrom           7.94g   B  Malfurion          15.04g   S       7.10g    +89.4%      9
-  Unknown Item (245805) (245805)          Maelstrom           5.94g   B  Malfurion          12.92g   B       6.98g   +117.4%     10
-  Unknown Item (236774) (236774)          Maelstrom           1.64g   B  Malfurion           8.46g   S       6.82g   +414.4%      9
-  Unknown Item (236770) (236770)          Maelstrom           0.03g   B  Moon Guard          6.25g   S       6.22g  +23319.9%      2
-  Unknown Item (239702) (239702)          Maelstrom           0.18g   B  Malfurion           5.53g   S       5.35g  +2942.0%     13
-  Unknown Item (237359) (237359)          Maelstrom           0.55g   B  Thrall              5.88g   S       5.34g   +977.1%      4
-  Unknown Item (243603) (243603)          Moon Guard          0.14g   B  Malfurion           4.49g   S       4.35g  +3129.0%      6
-  Unknown Item (236761) (236761)          Maelstrom           0.07g   B  Thrall              4.26g   S       4.19g  +5962.6%      4
-  Unknown Item (241313) (241313)          Maelstrom           2.95g   B  Malfurion           6.77g   S       3.81g   +129.1%      3
-  Unknown Item (237364) (237364)          Moon Guard          0.67g   B  Thrall              3.52g   S       2.85g   +422.3%      2
-  Unknown Item (236950) (236950)          Moon Guard          0.44g   B  Thrall              3.20g   S       2.75g   +619.1%     20
-  Unknown Item (238380) (238380)          Malfurion           2.14g   S  Moon Guard          4.58g   B       2.44g   +114.1%      2
-  Unknown Item (236778) (236778)          Maelstrom           0.21g   B  Malfurion           2.64g   S       2.43g  +1168.6%      4
-  Unknown Item (238521) (238521)          Malfurion          11.46g   S  Thrall             13.85g   S       2.39g    +20.8%      4
-  Unknown Item (241309) (241309)          Moon Guard          0.15g   B  Malfurion           2.01g   S       1.86g  +1240.4%      7
-  Unknown Item (243578) (243578)          Moon Guard          0.76g   B  Malfurion           2.20g   S       1.45g   +191.3%      4
-  Unknown Item (239700) (239700)          Maelstrom           0.94g   B  Malfurion           2.21g   B       1.27g   +134.7%      9
-  Unknown Item (238366) (238366)          Thrall              1.47g   B  Malfurion           2.71g   S       1.24g    +84.7%      3
-  Unknown Item (239701) (239701)          Malfurion           0.38g   B  Maelstrom           1.50g   B       1.13g   +300.8%      2
-  Unknown Item (236952) (236952)          Maelstrom           0.09g   B  Thrall              1.02g   S       0.93g   +988.4%      8
-  Unknown Item (243599) (243599)          Moon Guard          0.04g   B  Maelstrom           0.96g   B       0.92g  +2485.3%     14
-  Unknown Item (245803) (245803)          Maelstrom           1.20g   B  Malfurion           2.04g   S       0.84g    +69.7%      4
-  Unknown Item (268954) (268954)          Malfurion           0.10g   S  Moon Guard          0.88g   S       0.78g   +747.2%      2
-  Unknown Item (238511) (238511)          Maelstrom           0.04g   B  Malfurion           0.80g   S       0.76g  +1732.2%     11
-  Unknown Item (236951) (236951)          Maelstrom           0.10g   B  Thrall              0.85g   S       0.75g   +770.4%     12
-  Unknown Item (241339) (241339)          Moon Guard          0.94g   S  Malfurion           1.63g   S       0.69g    +74.0%      2
-  Unknown Item (243600) (243600)          Moon Guard          0.01g   B  Maelstrom           0.63g   B       0.62g  +7634.4%      4
-  Unknown Item (238365) (238365)          Moon Guard          0.06g   B  Malfurion           0.50g   S       0.44g   +710.3%      3
-  Unknown Item (236949) (236949)          Maelstrom           0.21g   B  Moon Guard          0.61g   B       0.40g   +192.2%     23
-  Unknown Item (241305) (241305)          Thrall              0.11g   B  Malfurion           0.35g   S       0.25g   +233.9%      3
-  Unknown Item (243581) (243581)          Malfurion           0.20g   S  Moon Guard          0.41g   B       0.21g   +109.4%      4
-  Unknown Item (243602) (243602)          Maelstrom           0.14g   B  Moon Guard          0.32g   B       0.18g   +133.0%      9
-  Unknown Item (245807) (245807)          Moon Guard          0.02g   B  Maelstrom           0.09g   B       0.08g   +502.0%      6
-  Unknown Item (253302) (253302)          Moon Guard          0.04g   B  Malfurion           0.10g   B       0.06g   +148.8%      3
-  Unknown Item (242289) (242289)          Moon Guard          0.03g   B  Thrall              0.06g   B       0.03g    +90.0%      2
-  Unknown Item (242787) (242787)          Moon Guard          0.03g   B  Malfurion           0.04g   B       0.01g    +59.9%      3
-  Unknown Item (223512) (223512)          Malfurion           0.01g   S  Moon Guard          0.02g   S       0.01g   +177.7%      3
+  Sin'dorei Quill (245776)                Malfurion        4607.95g   S  Maelstrom       37050.81g   B   32442.86g   +704.1%      3
+  Sin'dorei Enchanter's Crystal (240960)  Moon Guard       2949.78g   B  Malfurion       20900.36g   B   17950.58g   +608.5%      2
+  Sin'dorei Snippers (244708)             Malfurion        2204.50g   B  Maelstrom       12249.30g   B   10044.80g   +455.6%      2
+  Majestic Hide (238529)                  Malfurion        3500.28g   B  Maelstrom       12397.97g   B    8897.69g   +254.2%      2
+  Indecipherable Eversong Diamond (24098  Moon Guard        975.48g   B  Thrall           9498.95g   B    8523.48g   +873.8%      2
+  Elegant Artisan's Enchanting Hat (2396  Moon Guard       2845.20g   B  Malfurion        9018.29g   B    6173.09g   +217.0%      3
+  Sun-Blessed Needle Set (237950)         Malfurion        6886.92g   B  Maelstrom       11875.00g   B    4988.08g    +72.4%      2
+  Runed Brilliant Silver Rod (244176)     Moon Guard       2112.00g   B  Malfurion        6982.49g   B    4870.49g   +230.6%      2
+  Kaleidoscopic Prism (240974)            Moon Guard       1500.00g   B  Malfurion        6126.17g   S    4626.17g   +308.4%      2
+  Bright Linen Herbalism Hat (239645)     Malfurion         183.90g   S  Moon Guard       4750.00g   B    4566.10g  +2483.0%      3
+  Bold Biographer's Bifocals (240953)     Malfurion          61.27g   S  Maelstrom        4275.00g   B    4213.73g  +6877.3%      3
+  Fantastic Font Focuser (240954)         Malfurion         197.12g   S  Maelstrom        4275.00g   B    4077.88g  +2068.8%      3
+  Enchant Ring - Silvermoon's Alacrity (  Moon Guard        620.18g   B  Malfurion        4564.31g   S    3944.14g   +636.0%      3
+  Thalassian Skinning Knife (238011)      Malfurion         327.74g   S  Maelstrom        4108.85g   B    3781.11g  +1153.7%      2
+  Sin'dorei Engineer's Gloves (244624)    Moon Guard       1825.78g   B  Malfurion        5224.97g   B    3399.19g   +186.2%      2
+  Apprentice Smith's Apron (244627)       Malfurion          61.74g   S  Maelstrom        3322.15g   B    3260.41g  +5281.2%      3
+  Enchant Weapon - Berserker's Rage (243  Moon Guard       2374.95g   B  Malfurion        5264.49g   S    2889.54g   +121.7%      3
+  Skinner's Backpack (244616)             Malfurion        1299.79g   S  Maelstrom        3794.05g   B    2494.26g   +191.9%      3
+  Hideworker's Cover (244619)             Malfurion         197.91g   S  Maelstrom        2645.72g   B    2447.81g  +1236.8%      4
+  Forest Hunter's Armor Kit (244641)      Moon Guard       1687.79g   B  Malfurion        3902.82g   S    2215.03g   +131.2%      4
+  Enchant Tool - Ren'dorei Ingenuity (24  Moon Guard       2999.96g   B  Maelstrom        5060.03g   B    2060.07g    +68.7%      2
+  Chef's Bright Linen Cooking Chapeau (2  Malfurion         454.66g   S  Maelstrom        2398.75g   B    1944.09g   +427.6%      4
+  Hobbyist Rolling Pin (245779)           Moon Guard        400.00g   B  Maelstrom        2315.62g   B    1915.62g   +478.9%      4
+  Bright Linen Alchemy Apron (239641)     Malfurion         116.17g   S  Moon Guard       1900.00g   B    1783.83g  +1535.6%      3
+  Farstrider Rock Satchel (244719)        Malfurion         688.75g   S  Maelstrom        2374.03g   B    1685.29g   +244.7%      3
+  Farstrider Hardhat (244715)             Malfurion         855.00g   S  Maelstrom        2369.28g   B    1514.29g   +177.1%      3
+  Thalassian Leatherworker's Knife (2380  Malfurion          95.91g   S  Maelstrom        1513.28g   B    1417.37g  +1477.8%      2
+  Farstrider Hobbyist Rod (244711)        Malfurion         759.52g   S  Moon Guard       1900.55g   B    1141.03g   +150.2%      4
+  Thalassian Needle Set (237946)          Maelstrom        1200.00g   B  Malfurion        2339.30g   S    1139.30g    +94.9%      2
+  Thalassian Blacksmith's Hammer (238013  Malfurion         645.04g   S  Maelstrom        1776.72g   B    1131.68g   +175.4%      2
+  Nocturnal Lotus (236780)                Maelstrom         312.50g   B  Malfurion        1439.48g   S    1126.98g   +360.6%      4
+  Hobbyist Alchemist's Mixing Rod (24577  Malfurion         127.14g   S  Moon Guard       1187.02g   B    1059.88g   +833.6%      3
+  Thalassian Pickaxe (238010)             Malfurion         783.26g   S  Maelstrom        1708.09g   B     924.83g   +118.1%      2
+  Apprentice Jeweler's Apron (244629)     Malfurion         406.21g   S  Moon Guard       1187.46g   B     781.26g   +192.3%      3
+  Thalassian Leatherworker's Toolset (23  Malfurion         474.99g   S  Maelstrom        1187.50g   B     712.50g   +150.0%      2
+  Majestic Fin (238530)                   Maelstrom         524.99g   B  Moon Guard       1235.75g   B     710.77g   +135.4%      2
+  Sin'dorei Jeweler's Loupes (240959)     Moon Guard         80.00g   B  Malfurion         712.50g   B     632.50g   +790.6%      2
+  Dawn Crystal (243605)                   Moon Guard        162.50g   B  Malfurion         788.32g   B     625.82g   +385.1%      9
+  Eversong Botanist's Satchel (244615)    Moon Guard        894.00g   B  Malfurion        1517.79g   S     623.79g    +69.8%      4
+  Hobbyist Scribe's Quill (245775)        Malfurion         831.24g   S  Maelstrom        1425.00g   B     593.76g    +71.4%      2
+  Fantastic Fur (238525)                  Moon Guard         64.76g   B  Thrall            604.37g   B     539.61g   +833.3%      2
+  Farstrider Clampers (244713)            Moon Guard        750.91g   B  Malfurion        1286.05g   S     535.14g    +71.3%      3
+  Gloaming Alloy (238202)                 Maelstrom          18.09g   B  Malfurion         495.42g   S     477.33g  +2638.3%      2
+  Thalassian Sickle (238009)              Malfurion         759.99g   S  Moon Guard       1187.50g   B     427.51g    +56.3%      2
+  Haranir Phial of Ingenuity (241312)     Malfurion         176.23g   S  Maelstrom         579.49g   B     403.26g   +228.8%      2
+  Chemist's Cap (244620)                  Malfurion         555.74g   S  Moon Guard        945.66g   B     389.92g    +70.2%      3
+  Void-Tempered Hide (238519)             Malfurion          49.85g   S  Thrall            419.66g   S     369.82g   +741.9%      7
+  Farstrider Fabric Cutters (244707)      Malfurion        1324.79g   S  Maelstrom        1676.74g   B     351.95g    +26.6%      3
+  Tenebrous Amethyst (242606)             Moon Guard         94.50g   B  Malfurion         397.73g   S     303.24g   +320.9%      2
+  Contract: The Singularity (245794)      Maelstrom          87.21g   B  Thrall            380.94g   B     293.73g   +336.8%      2
+  Harandar Peridot (242607)               Moon Guard         86.84g   B  Malfurion         367.07g   S     280.23g   +322.7%      5
+  Amani Lapis (242554)                    Moon Guard        135.21g   B  Malfurion         365.36g   S     230.15g   +170.2%      5
+  Codified Azeroot (245764)               Moon Guard         30.67g   B  Malfurion         245.02g   S     214.35g   +699.0%      4
+  Bright Linen Spellthread (240157)       Malfurion          70.30g   S  Thrall            266.34g   B     196.04g   +278.9%      2
+  Song Gear (243575)                      Moon Guard          8.95g   B  Malfurion         204.29g   S     195.34g  +2182.7%      3
+  Thalassian Essence of the Faire (25192  Thrall            361.42g   S  Malfurion         550.52g   S     189.10g    +52.3%      2
+  Petrified Root (251285)                 Malfurion          53.91g   S  Maelstrom         229.37g   B     175.46g   +325.5%      7
+  Flawless Tenebrous Amethyst (242611)    Moon Guard        240.57g   B  Malfurion         388.07g   S     147.50g    +61.3%     10
+  Glimmering Gemdust (242620)             Moon Guard         36.59g   B  Malfurion         168.13g   S     131.54g   +359.5%     11
+  Gleaming Copper Band (240947)           Malfurion         197.42g   S  Moon Guard        307.45g   B     110.03g    +55.7%      4
+  Sin'dorei Lens (240972)                 Malfurion           7.49g   B  Moon Guard        114.27g   B     106.78g  +1425.4%      4
+  Soul Sprocket (243576)                  Moon Guard         22.39g   B  Malfurion         110.91g   B      88.52g   +395.3%     11
+  Umbral Tin Ore (237363)                 Maelstrom           9.88g   B  Malfurion          88.58g   S      78.70g   +797.0%     10
+  Flawless Amani Lapis (242612)           Moon Guard        156.57g   B  Malfurion         233.91g   B      77.34g    +49.4%     11
+  Void-Tempered Hide (238518)             Moon Guard          8.03g   B  Thrall             76.06g   S      68.03g   +847.0%      2
+  Flawless Harandar Peridot (242610)      Moon Guard        182.65g   B  Malfurion         245.62g   B      62.98g    +34.5%      9
+  Silvermoon Weapon Wrap (244637)         Maelstrom          24.94g   B  Malfurion          87.53g   S      62.59g   +251.0%      3
+  Dazzling Thorium (237366)               Malfurion          72.67g   S  Thrall            134.38g   S      61.71g    +84.9%      2
+  Silvermoon Health Potion (241304)       Moon Guard          6.88g   B  Malfurion          53.79g   S      46.91g   +682.4%      2
+  Tormented Tantalum (251283)             Malfurion           2.38g   S  Maelstrom          46.49g   B      44.11g  +1854.5%      2
+  Soul Cipher (245766)                    Moon Guard         23.24g   B  Maelstrom          67.34g   B      44.10g   +189.8%      6
+  Munsell Ink (245801)                    Maelstrom           3.01g   B  Malfurion          43.64g   S      40.63g  +1347.9%     10
+  Argentleaf (236776)                     Maelstrom           0.25g   B  Thrall             27.98g   S      27.73g  +11140.5%      2
+  Eversong Trout (238383)                 Moon Guard          7.38g   B  Malfurion          33.79g   S      26.41g   +358.2%      3
+  Sin'dorei Armor Banding (244635)        Malfurion          93.28g   S  Maelstrom         116.38g   B      23.10g    +24.8%      3
+  Composite Flora (241281)                Maelstrom          16.19g   B  Moon Guard         33.84g   S      17.65g   +109.0%      2
+  Lightfused Mana Potion (241301)         Moon Guard          2.71g   S  Malfurion          19.98g   S      17.27g   +636.4%      2
+  Sunfire Silk (237015)                   Maelstrom           2.63g   B  Malfurion          19.38g   S      16.75g   +637.6%      8
+  Arcanoweave Bolt (239198)               Malfurion          41.73g   S  Moon Guard         55.80g   B      14.06g    +33.7%     18
+  Void-Tempered Plating (238520)          Moon Guard          0.81g   B  Thrall             13.51g   S      12.70g  +1558.0%      3
+  Void-Tempered Scales (238513)           Maelstrom           0.13g   B  Thrall             12.24g   S      12.11g  +9062.3%     13
+  Peerless Plumage (238522)               Malfurion          50.59g   S  Maelstrom          61.77g   B      11.18g    +22.1%     12
+  Thalassian Phoenix Oil (243734)         Moon Guard          8.00g   B  Malfurion          17.95g   S       9.95g   +124.4%      2
+  Sanguithorn Pigment (245865)            Maelstrom           0.04g   B  Malfurion           9.93g   S       9.89g  +22089.4%      3
+  Carving Canine (238523)                 Malfurion           1.83g   S  Thrall             10.68g   S       8.84g   +482.9%      3
+  Umbral Tin Ore (237362)                 Moon Guard          0.63g   B  Thrall              9.25g   S       8.61g  +1360.3%      6
+  Refreshing Serum (241307)               Moon Guard          1.38g   B  Malfurion           9.93g   S       8.55g   +621.5%      2
+  Arcanoweave (237018)                    Maelstrom           7.94g   B  Malfurion          15.04g   S       7.10g    +89.4%      9
+  Sienna Ink (245805)                     Maelstrom           5.94g   B  Malfurion          12.92g   B       6.98g   +117.4%     10
+  Azeroot (236774)                        Maelstrom           1.64g   B  Malfurion           8.46g   S       6.82g   +414.4%      9
+  Sanguithorn (236770)                    Maelstrom           0.03g   B  Moon Guard          6.25g   S       6.22g  +23319.9%      2
+  Imbued Bright Linen Bolt (239702)       Maelstrom           0.18g   B  Malfurion           5.53g   S       5.35g  +2942.0%     13
+  Refulgent Copper Ore (237359)           Maelstrom           0.55g   B  Thrall              5.88g   S       5.34g   +977.1%      4
+  Radiant Shard (243603)                  Moon Guard          0.14g   B  Malfurion           4.49g   S       4.35g  +3129.0%      6
+  Tranquility Bloom (236761)              Maelstrom           0.07g   B  Thrall              4.26g   S       4.19g  +5962.6%      4
+  Haranir Phial of Ingenuity (241313)     Maelstrom           2.95g   B  Malfurion           6.77g   S       3.81g   +129.1%      3
+  Brilliant Silver Ore (237364)           Moon Guard          0.67g   B  Thrall              3.52g   S       2.85g   +422.3%      2
+  Mote of Primal Energy (236950)          Moon Guard          0.44g   B  Thrall              3.20g   S       2.75g   +619.1%     20
+  Null Voidfish (238380)                  Malfurion           2.14g   S  Moon Guard          4.58g   B       2.44g   +114.1%      2
+  Mana Lily (236778)                      Maelstrom           0.21g   B  Malfurion           2.64g   S       2.43g  +1168.6%      4
+  Void-Tempered Plating (238521)          Malfurion          11.46g   S  Thrall             13.85g   S       2.39g    +20.8%      4
+  Light's Potential (241309)              Moon Guard          0.15g   B  Malfurion           2.01g   S       1.86g  +1240.4%      7
+  Aetherlume (243578)                     Moon Guard          0.76g   B  Malfurion           2.20g   S       1.45g   +191.3%      4
+  Bright Linen Bolt (239700)              Maelstrom           0.94g   B  Malfurion           2.21g   B       1.27g   +134.7%      9
+  Lynxfish (238366)                       Thrall              1.47g   B  Malfurion           2.71g   S       1.24g    +84.7%      3
+  Bright Linen Bolt (239701)              Malfurion           0.38g   B  Maelstrom           1.50g   B       1.13g   +300.8%      2
+  Mote of Pure Void (236952)              Maelstrom           0.09g   B  Thrall              1.02g   S       0.93g   +988.4%      8
+  Eversinging Dust (243599)               Moon Guard          0.04g   B  Maelstrom           0.96g   B       0.92g  +2485.3%     14
+  Argentleaf Pigment (245803)             Maelstrom           1.20g   B  Malfurion           2.04g   S       0.84g    +69.7%      4
+  Entropic Extract (268954)               Malfurion           0.10g   S  Moon Guard          0.88g   S       0.78g   +747.2%      2
+  Void-Tempered Leather (238511)          Maelstrom           0.04g   B  Malfurion           0.80g   S       0.76g  +1732.2%     11
+  Mote of Wild Magic (236951)             Maelstrom           0.10g   B  Thrall              0.85g   S       0.75g   +770.4%     12
+  Enlightenment Tonic (241339)            Moon Guard          0.94g   S  Malfurion           1.63g   S       0.69g    +74.0%      2
+  Eversinging Dust (243600)               Moon Guard          0.01g   B  Maelstrom           0.63g   B       0.62g  +7634.4%      4
+  Sin'dorei Swarmer (238365)              Moon Guard          0.06g   B  Malfurion           0.50g   S       0.44g   +710.3%      3
+  Mote of Light (236949)                  Maelstrom           0.21g   B  Moon Guard          0.61g   B       0.40g   +192.2%     23
+  Silvermoon Health Potion (241305)       Thrall              0.11g   B  Malfurion           0.35g   S       0.25g   +233.9%      3
+  Evercore (243581)                       Malfurion           0.20g   S  Moon Guard          0.41g   B       0.21g   +109.4%      4
+  Radiant Shard (243602)                  Maelstrom           0.14g   B  Moon Guard          0.32g   B       0.18g   +133.0%      9
+  Powder Pigment (245807)                 Moon Guard          0.02g   B  Maelstrom           0.09g   B       0.08g   +502.0%      6
+  Malleable Wireframe (253302)            Moon Guard          0.04g   B  Malfurion           0.10g   B       0.06g   +148.8%      3
+  Spellfire Filet (242289)                Moon Guard          0.03g   B  Thrall              0.06g   B       0.03g    +90.0%      2
+  Crystalline Glass (242787)              Moon Guard          0.03g   B  Malfurion           0.04g   B       0.01g    +59.9%      3
+  Basically Beef (223512)                 Malfurion           0.01g   S  Moon Guard          0.02g   S       0.01g   +177.7%      3
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-  124 opportunities found  |  avg profit 1341.75g/item  |  best: Unknown Item (245776) (245776) @ +32442.86g (+704.1%)
+  124 opportunities found  |  avg profit 1341.75g/item  |  best: Sin'dorei Quill (245776) @ +32442.86g (+704.1%)

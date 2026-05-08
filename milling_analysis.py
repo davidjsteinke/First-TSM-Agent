@@ -116,8 +116,11 @@ def build_milling_analysis(
 
         herb_key    = (herb_id,    herb_tier)
         pigment_key = (pigment_id, pig_tier)
-        herb_price  = prices.get(herb_key)
-        pig_price   = prices.get(pigment_key)
+        # Live AH stores quality_tier='' until the tier_map can infer a tier
+        # from grouped item names. Each herb_id / pigment_id in this map is
+        # already unique to one tier, so the empty-tier fallback is unambiguous.
+        herb_price  = prices.get(herb_key)    or prices.get((herb_id,    ""))
+        pig_price   = prices.get(pigment_key) or prices.get((pigment_id, ""))
 
         logger.info(
             f"[milling] {herb_name} {herb_tier}: "

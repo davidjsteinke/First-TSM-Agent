@@ -196,7 +196,10 @@ def build_prospecting_analysis(
 
     for ore_id, (ore_name, ore_tier, gem_outputs) in ORE_PROSPECT_MAP.items():
         ore_key = (ore_id, ore_tier)
-        ore_price = prices.get(ore_key)
+        # Live AH stores quality_tier='' until the tier_map can infer a tier
+        # from grouped item names; each ore_id / gem_id in this map is unique
+        # to one tier, so the empty-tier fallback is unambiguous.
+        ore_price = prices.get(ore_key) or prices.get((ore_id, ""))
         logger.info(f"[prospect] {ore_name} {ore_tier}: ore {ore_key}={ore_price}g")
         if ore_price is None:
             continue
@@ -216,7 +219,7 @@ def build_prospecting_analysis(
                 f"→ gem {gem_id}/{gem_tier}"
             )
             gem_key = (gem_id, gem_tier)
-            gem_price = prices.get(gem_key)
+            gem_price = prices.get(gem_key) or prices.get((gem_id, ""))
             logger.info(
                 f"[prospect]   gem {gem_key} avg_qty={avg_qty} "
                 f"price={gem_price}g"
